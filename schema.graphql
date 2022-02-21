@@ -1,0 +1,62 @@
+# Game State
+enum LetterGuess {
+  INCORRECT,
+  IN_WORD,
+  IN_LOCATION
+}
+
+type GuessState {
+  letter: String!
+  guess: LetterGuess!
+}
+
+enum GameState {
+  IN_PROGRESS,
+  LOST,
+  WON
+}
+
+type GameBoard {
+  day: Int!
+  guesses: [GuessState!]!
+  state: GameState!
+}
+
+# Leaderboard State
+type User {
+  id: ID!
+  displayName: String!
+  leaderboards: [Leaderboard!]!
+  individualStats: [UserStat!]!
+}
+
+type UserStat {
+  user: User!
+  day: Int!
+  guessCount: Int!
+  gameState: GameState!
+}
+
+type LeaderboardStat {
+  day: Int!
+  stats: [UserStat!]!
+}
+
+type Leaderboard {
+  id: Int!
+  name: String!
+  members: [User!]!
+  stats: [LeaderboardStat!]!
+}
+
+type Query {
+  day(input: Int!): GameBoard
+  todayBoard: GameBoard!
+  user(input: ID!): User!
+  leaderboard(input: ID!): Leaderboard
+}
+
+type Mutation {
+  guess(input: String!): GameBoard! # guesses only apply to today's board
+  createLeaderboard(input: String!): Leaderboard!
+}
