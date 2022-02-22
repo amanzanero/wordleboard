@@ -4,6 +4,9 @@ import (
 	"context"
 	"flag"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/amanzanero/wordleboard/mongo"
+	"github.com/amanzanero/wordleboard/users"
+	"github.com/amanzanero/wordleboard/wordle"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"net/http"
@@ -35,7 +38,20 @@ func main() {
 		ReportCaller: false,
 	}
 
-	gqlServer := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
+	mongoService, err := mongo.NewMongoService("mongodb://root:rootpassword@localhost:27017")
+	if err != nil {
+		panic(err)
+	} else {
+		logger.Info("connected to mongo")
+	}
+	resolver := &graph.Resolver{
+		WordleService: wordle.NewService(
+			mongoService,
+			logger,
+		),
+		UsersService: users.Service{},
+	}
+	gqlServer := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: resolver}))
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -51,6 +67,16 @@ func main() {
 		Addr:    ":8080",
 		Handler: r,
 	}
+	httpServer.RegisterOnShutdown(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+		err := mongoService.Disconnect(ctx)
+		if err != nil {
+			logger.Error(err)
+		} else {
+			logger.Info("mongo disconnected")
+		}
+	})
 
 	srvClosed := make(chan bool)
 	go func() {

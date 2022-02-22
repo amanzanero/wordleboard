@@ -38,3 +38,4 @@ yarn-error.log*
 *.tsbuildinfo
 
 .idea
+mongodb_data_container/

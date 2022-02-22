@@ -1,15 +1,30 @@
 package models
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
 )
 
+var (
+	ErrInvalidId  = errors.New("invalid id")
+	ErrRepoFailed = errors.New("internal err")
+	ErrNotFound   = errors.New("not found")
+)
+
+type GameBoardRepo interface {
+	FindGameBoardByUserAndDay(ctx context.Context, userId string, day int) (*GameBoard, error)
+	InsertGameBoard(ctx context.Context, gameBoard GameBoard) error
+}
+
 type GameBoard struct {
+	ID      string
 	Day     int           `json:"day"`
 	Guesses []*GuessState `json:"guesses"`
 	State   GameState     `json:"state"`
+	UserId  string
 }
 
 type GuessState struct {

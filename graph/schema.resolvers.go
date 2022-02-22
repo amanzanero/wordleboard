@@ -6,10 +6,15 @@ package graph
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/amanzanero/wordleboard/graph/generated"
 	"github.com/amanzanero/wordleboard/models"
 )
+
+func (r *gameBoardResolver) User(ctx context.Context, obj *models.GameBoard) (*models.User, error) {
+	return r.UsersService.GetUserById(obj.UserId)
+}
 
 func (r *leaderboardResolver) Members(ctx context.Context, obj *models.Leaderboard) ([]*models.User, error) {
 	return []*models.User{{DisplayName: ""}}, nil
@@ -27,12 +32,22 @@ func (r *mutationResolver) CreateLeaderboard(ctx context.Context, input string) 
 	panic(fmt.Errorf("not implemented"))
 }
 
+var FakeUser = models.User{
+	ID:          "62141fefd1a861b9671c10ee",
+	DisplayName: "",
+	OauthId:     "",
+}
+
 func (r *queryResolver) Day(ctx context.Context, input int) (*models.GameBoard, error) {
-	panic(fmt.Errorf("not implemented"))
+	cancelCtx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
+	return r.WordleService.GetGameByDay(cancelCtx, FakeUser.ID, input)
 }
 
 func (r *queryResolver) TodayBoard(ctx context.Context) (*models.GameBoard, error) {
-	panic(fmt.Errorf("not implemented"))
+	cancelCtx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
+	return r.WordleService.GetTodayGameOrCreateNewGame(cancelCtx, FakeUser, time.Now())
 }
 
 func (r *queryResolver) User(ctx context.Context, input string) (*models.User, error) {
@@ -55,6 +70,9 @@ func (r *userStatResolver) User(ctx context.Context, obj *models.UserStat) (*mod
 	panic(fmt.Errorf("not implemented"))
 }
 
+// GameBoard returns generated.GameBoardResolver implementation.
+func (r *Resolver) GameBoard() generated.GameBoardResolver { return &gameBoardResolver{r} }
+
 // Leaderboard returns generated.LeaderboardResolver implementation.
 func (r *Resolver) Leaderboard() generated.LeaderboardResolver { return &leaderboardResolver{r} }
 
@@ -70,6 +88,7 @@ func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
 // UserStat returns generated.UserStatResolver implementation.
 func (r *Resolver) UserStat() generated.UserStatResolver { return &userStatResolver{r} }
 
+type gameBoardResolver struct{ *Resolver }
 type leaderboardResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

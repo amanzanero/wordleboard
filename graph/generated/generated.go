@@ -35,6 +35,7 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	GameBoard() GameBoardResolver
 	Leaderboard() LeaderboardResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
@@ -50,6 +51,7 @@ type ComplexityRoot struct {
 		Day     func(childComplexity int) int
 		Guesses func(childComplexity int) int
 		State   func(childComplexity int) int
+		User    func(childComplexity int) int
 	}
 
 	GuessState struct {
@@ -96,6 +98,9 @@ type ComplexityRoot struct {
 	}
 }
 
+type GameBoardResolver interface {
+	User(ctx context.Context, obj *models.GameBoard) (*models.User, error)
+}
 type LeaderboardResolver interface {
 	Members(ctx context.Context, obj *models.Leaderboard) ([]*models.User, error)
 	Stats(ctx context.Context, obj *models.Leaderboard) ([]*models.LeaderboardStat, error)
@@ -153,6 +158,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.GameBoard.State(childComplexity), true
+
+	case "GameBoard.user":
+		if e.complexity.GameBoard.User == nil {
+			break
+		}
+
+		return e.complexity.GameBoard.User(childComplexity), true
 
 	case "GuessState.guess":
 		if e.complexity.GuessState.Guess == nil {
@@ -417,6 +429,7 @@ enum GameState {
 
 type GameBoard {
   day: Int!
+  user: User!
   guesses: [GuessState!]!
   state: GameState!
 }
@@ -628,6 +641,41 @@ func (ec *executionContext) _GameBoard_day(ctx context.Context, field graphql.Co
 	res := resTmp.(int)
 	fc.Result = res
 	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _GameBoard_user(ctx context.Context, field graphql.CollectedField, obj *models.GameBoard) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "GameBoard",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.GameBoard().User(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _GameBoard_guesses(ctx context.Context, field graphql.CollectedField, obj *models.GameBoard) (ret graphql.Marshaler) {
@@ -2718,8 +2766,28 @@ func (ec *executionContext) _GameBoard(ctx context.Context, sel ast.SelectionSet
 			out.Values[i] = innerFunc(ctx)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
+		case "user":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._GameBoard_user(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		case "guesses":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._GameBoard_guesses(ctx, field, obj)
@@ -2728,7 +2796,7 @@ func (ec *executionContext) _GameBoard(ctx context.Context, sel ast.SelectionSet
 			out.Values[i] = innerFunc(ctx)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "state":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -2738,7 +2806,7 @@ func (ec *executionContext) _GameBoard(ctx context.Context, sel ast.SelectionSet
 			out.Values[i] = innerFunc(ctx)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))

@@ -18,6 +18,7 @@ enum GameState {
 
 type GameBoard {
   day: Int!
+  user: User!
   guesses: [GuessState!]!
   state: GameState!
 }
