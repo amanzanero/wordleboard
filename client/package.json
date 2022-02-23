@@ -6,16 +6,24 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "generate": "graphql-codegen --config codegen.yml",
+    "export": "rm -rf .next && next build && next export -o dist"
   },
   "dependencies": {
     "axios": "^0.26.0",
     "dayjs": "^1.10.7",
     "next": "12.1.0",
     "react": "17.0.2",
-    "react-dom": "17.0.2"
+    "react-dom": "17.0.2",
+    "react-query": "^3.34.16"
   },
   "devDependencies": {
+    "@graphql-codegen/cli": "^2.6.1",
+    "@graphql-codegen/typed-document-node": "^2.2.3",
+    "@graphql-codegen/typescript": "^2.4.3",
+    "@graphql-codegen/typescript-operations": "^2.3.0",
+    "@graphql-typed-document-node/core": "^3.1.1",
     "@types/node": "17.0.18",
     "@types/react": "17.0.39",
     "autoprefixer": "^10.4.2",

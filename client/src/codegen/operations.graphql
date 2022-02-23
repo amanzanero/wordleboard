@@ -1,0 +1,26 @@
+mutation Guess($word: String!) {
+  guess(input: $word) {
+    ... on GameBoard {
+      day
+      guesses {
+        letter
+        guess
+      }
+      state
+    }
+    ... on InvalidGuess {
+      message
+    }
+  }
+}
+
+query Today {
+  todayBoard {
+    day
+    guesses {
+      letter
+      guess
+    }
+    state
+  }
+}

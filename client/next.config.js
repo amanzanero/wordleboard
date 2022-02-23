@@ -1,6 +1,13 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  reactStrictMode: true,
-};
+/** @type {import("next").NextConfig} */
 
-module.exports = nextConfig;
+module.exports = {
+  reactStrictMode: true,
+  async rewrites() {
+    return [
+      {
+        source: "/graphql",
+        destination: "http://localhost:8080/graphql",
+      },
+    ];
+  },
+};
