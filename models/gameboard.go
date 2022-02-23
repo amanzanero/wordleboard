@@ -17,6 +17,7 @@ var (
 type GameBoardRepo interface {
 	FindGameBoardByUserAndDay(ctx context.Context, userId string, day int) (*GameBoard, error)
 	InsertGameBoard(ctx context.Context, gameBoard GameBoard) error
+	UpdateGameBoardById(ctx context.Context, id string, gameBoard GameBoard) error
 }
 
 type GameBoard struct {
@@ -125,7 +126,48 @@ type GuessResult interface {
 func (GameBoard) IsGuessResult() {}
 
 type InvalidGuess struct {
-	Message string `json:"message"`
+	Error GuessError `json:"error"`
 }
 
 func (InvalidGuess) IsGuessResult() {}
+
+type GuessError string
+
+const (
+	GuessErrorNotAWord      GuessError = "NotAWord"
+	GuessErrorInvalidLength GuessError = "InvalidLength"
+)
+
+var AllGuessError = []GuessError{
+	GuessErrorNotAWord,
+	GuessErrorInvalidLength,
+}
+
+func (e GuessError) IsValid() bool {
+	switch e {
+	case GuessErrorNotAWord, GuessErrorInvalidLength:
+		return true
+	}
+	return false
+}
+
+func (e GuessError) String() string {
+	return string(e)
+}
+
+func (e *GuessError) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = GuessError(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid GuessError", str)
+	}
+	return nil
+}
+
+func (e GuessError) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}

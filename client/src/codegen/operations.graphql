@@ -9,7 +9,7 @@ mutation Guess($word: String!) {
       state
     }
     ... on InvalidGuess {
-      message
+      error
     }
   }
 }

@@ -13,16 +13,24 @@ import {
   TodayDocument,
   TodayQuery,
 } from "codegen";
+import { GraphQLError } from "graphql";
 
 export function useGuessMutation(
-  variables: GuessMutationVariables,
-  options?: UseMutationOptions<GuessMutation["guess"]>,
+  options?: UseMutationOptions<
+    GuessMutation["guess"],
+    GraphQLError,
+    GuessMutationVariables
+  >,
 ) {
   const request = useGraphqlRequest();
   const queryClient = useQueryClient();
-  return useMutation<GuessMutation["guess"]>(
+  return useMutation<
+    GuessMutation["guess"],
+    GraphQLError,
+    GuessMutationVariables
+  >(
     ["gameBoard"],
-    () => request(GuessDocument, variables).then((data) => data.guess),
+    (args) => request(GuessDocument, args).then((data) => data.guess),
     {
       ...options,
       onSuccess: (data, x, y) => {

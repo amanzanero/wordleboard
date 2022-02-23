@@ -36,6 +36,7 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	GameBoard() GameBoardResolver
 	Leaderboard() LeaderboardResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
@@ -60,7 +61,7 @@ type ComplexityRoot struct {
 	}
 
 	InvalidGuess struct {
-		Message func(childComplexity int) int
+		Error func(childComplexity int) int
 	}
 
 	Leaderboard struct {
@@ -77,7 +78,12 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		CreateLeaderboard func(childComplexity int, input string) int
+		CreateUser        func(childComplexity int, input models.NewUser) int
 		Guess             func(childComplexity int, input string) int
+	}
+
+	NewUserError struct {
+		Error func(childComplexity int) int
 	}
 
 	Query struct {
@@ -102,6 +108,9 @@ type ComplexityRoot struct {
 	}
 }
 
+type GameBoardResolver interface {
+	User(ctx context.Context, obj *models.GameBoard) (*models.User, error)
+}
 type LeaderboardResolver interface {
 	Members(ctx context.Context, obj *models.Leaderboard) ([]*models.User, error)
 	Stats(ctx context.Context, obj *models.Leaderboard) ([]*models.LeaderboardStat, error)
@@ -109,6 +118,7 @@ type LeaderboardResolver interface {
 type MutationResolver interface {
 	Guess(ctx context.Context, input string) (models.GuessResult, error)
 	CreateLeaderboard(ctx context.Context, input string) (*models.Leaderboard, error)
+	CreateUser(ctx context.Context, input models.NewUser) (models.NewUserResult, error)
 }
 type QueryResolver interface {
 	Day(ctx context.Context, input int) (*models.GameBoard, error)
@@ -181,12 +191,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.GuessState.Letter(childComplexity), true
 
-	case "InvalidGuess.message":
-		if e.complexity.InvalidGuess.Message == nil {
+	case "InvalidGuess.error":
+		if e.complexity.InvalidGuess.Error == nil {
 			break
 		}
 
-		return e.complexity.InvalidGuess.Message(childComplexity), true
+		return e.complexity.InvalidGuess.Error(childComplexity), true
 
 	case "Leaderboard.id":
 		if e.complexity.Leaderboard.ID == nil {
@@ -242,6 +252,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateLeaderboard(childComplexity, args["input"].(string)), true
 
+	case "Mutation.createUser":
+		if e.complexity.Mutation.CreateUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createUser_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateUser(childComplexity, args["input"].(models.NewUser)), true
+
 	case "Mutation.guess":
 		if e.complexity.Mutation.Guess == nil {
 			break
@@ -253,6 +275,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.Guess(childComplexity, args["input"].(string)), true
+
+	case "NewUserError.error":
+		if e.complexity.NewUserError.Error == nil {
+			break
+		}
+
+		return e.complexity.NewUserError.Error(childComplexity), true
 
 	case "Query.day":
 		if e.complexity.Query.Day == nil {
@@ -442,8 +471,13 @@ type GameBoard {
   state: GameState!
 }
 
+enum GuessError {
+  NotAWord
+  InvalidLength
+}
+
 type InvalidGuess {
-  message: String!
+  error: GuessError!
 }
 
 union GuessResult = GameBoard | InvalidGuess
@@ -455,6 +489,23 @@ type User {
   leaderboards: [Leaderboard!]!
   individualStats: [UserStat!]!
 }
+
+input NewUser {
+  id: ID!
+  token: String!
+  displayName: String
+}
+
+enum CreateNewUserError {
+  UserAlreadyExists
+  InvalidCredentials
+}
+
+type NewUserError {
+  error: CreateNewUserError!
+}
+
+union NewUserResult = User | NewUserError
 
 type UserStat {
   user: User!
@@ -485,6 +536,7 @@ type Query {
 type Mutation {
   guess(input: String!): GuessResult! # guesses only apply to today's board
   createLeaderboard(input: String!): Leaderboard!
+  createUser(input: NewUser!): NewUserResult!
 }
 `, BuiltIn: false},
 }
@@ -501,6 +553,21 @@ func (ec *executionContext) field_Mutation_createLeaderboard_args(ctx context.Co
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 models.NewUser
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNNewUser2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐNewUser(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -668,14 +735,14 @@ func (ec *executionContext) _GameBoard_user(ctx context.Context, field graphql.C
 		Object:     "GameBoard",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.User, nil
+		return ec.resolvers.GameBoard().User(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -722,9 +789,9 @@ func (ec *executionContext) _GameBoard_guesses(ctx context.Context, field graphq
 		}
 		return graphql.Null
 	}
-	res := resTmp.([][]*models.GuessState)
+	res := resTmp.([][]models.GuessState)
 	fc.Result = res
-	return ec.marshalNGuessState2ᚕᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessStateᚄ(ctx, field.Selections, res)
+	return ec.marshalNGuessState2ᚕᚕgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessStateᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _GameBoard_state(ctx context.Context, field graphql.CollectedField, obj *models.GameBoard) (ret graphql.Marshaler) {
@@ -832,7 +899,7 @@ func (ec *executionContext) _GuessState_guess(ctx context.Context, field graphql
 	return ec.marshalNLetterGuess2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐLetterGuess(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _InvalidGuess_message(ctx context.Context, field graphql.CollectedField, obj *models.InvalidGuess) (ret graphql.Marshaler) {
+func (ec *executionContext) _InvalidGuess_error(ctx context.Context, field graphql.CollectedField, obj *models.InvalidGuess) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -850,7 +917,7 @@ func (ec *executionContext) _InvalidGuess_message(ctx context.Context, field gra
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Message, nil
+		return obj.Error, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -862,9 +929,9 @@ func (ec *executionContext) _InvalidGuess_message(ctx context.Context, field gra
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(models.GuessError)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNGuessError2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessError(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Leaderboard_id(ctx context.Context, field graphql.CollectedField, obj *models.Leaderboard) (ret graphql.Marshaler) {
@@ -1159,6 +1226,83 @@ func (ec *executionContext) _Mutation_createLeaderboard(ctx context.Context, fie
 	res := resTmp.(*models.Leaderboard)
 	fc.Result = res
 	return ec.marshalNLeaderboard2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐLeaderboard(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_createUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createUser_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateUser(rctx, args["input"].(models.NewUser))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(models.NewUserResult)
+	fc.Result = res
+	return ec.marshalNNewUserResult2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐNewUserResult(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _NewUserError_error(ctx context.Context, field graphql.CollectedField, obj *models.NewUserError) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "NewUserError",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Error, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.CreateNewUserError)
+	fc.Result = res
+	return ec.marshalNCreateNewUserError2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐCreateNewUserError(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_day(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2789,6 +2933,45 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputNewUser(ctx context.Context, obj interface{}) (models.NewUser, error) {
+	var it models.NewUser
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "token":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("token"))
+			it.Token, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "displayName":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("displayName"))
+			it.DisplayName, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -2816,6 +2999,29 @@ func (ec *executionContext) _GuessResult(ctx context.Context, sel ast.SelectionS
 	}
 }
 
+func (ec *executionContext) _NewUserResult(ctx context.Context, sel ast.SelectionSet, obj models.NewUserResult) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case models.User:
+		return ec._User(ctx, sel, &obj)
+	case *models.User:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._User(ctx, sel, obj)
+	case models.NewUserError:
+		return ec._NewUserError(ctx, sel, &obj)
+	case *models.NewUserError:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._NewUserError(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
@@ -2838,18 +3044,28 @@ func (ec *executionContext) _GameBoard(ctx context.Context, sel ast.SelectionSet
 			out.Values[i] = innerFunc(ctx)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "user":
+			field := field
+
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._GameBoard_user(ctx, field, obj)
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._GameBoard_user(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
 			}
 
-			out.Values[i] = innerFunc(ctx)
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			})
 		case "guesses":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._GameBoard_guesses(ctx, field, obj)
@@ -2858,7 +3074,7 @@ func (ec *executionContext) _GameBoard(ctx context.Context, sel ast.SelectionSet
 			out.Values[i] = innerFunc(ctx)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "state":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -2868,7 +3084,7 @@ func (ec *executionContext) _GameBoard(ctx context.Context, sel ast.SelectionSet
 			out.Values[i] = innerFunc(ctx)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -2932,9 +3148,9 @@ func (ec *executionContext) _InvalidGuess(ctx context.Context, sel ast.Selection
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("InvalidGuess")
-		case "message":
+		case "error":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._InvalidGuess_message(ctx, field, obj)
+				return ec._InvalidGuess_error(ctx, field, obj)
 			}
 
 			out.Values[i] = innerFunc(ctx)
@@ -3114,6 +3330,47 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "createUser":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createUser(ctx, field)
+			}
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, innerFunc)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var newUserErrorImplementors = []string{"NewUserError", "NewUserResult"}
+
+func (ec *executionContext) _NewUserError(ctx context.Context, sel ast.SelectionSet, obj *models.NewUserError) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, newUserErrorImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("NewUserError")
+		case "error":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._NewUserError_error(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3255,7 +3512,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 	return out
 }
 
-var userImplementors = []string{"User"}
+var userImplementors = []string{"User", "NewUserResult"}
 
 func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *models.User) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, userImplementors)
@@ -3831,6 +4088,22 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) unmarshalNCreateNewUserError2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐCreateNewUserError(ctx context.Context, v interface{}) (*models.CreateNewUserError, error) {
+	var res = new(models.CreateNewUserError)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNCreateNewUserError2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐCreateNewUserError(ctx context.Context, sel ast.SelectionSet, v *models.CreateNewUserError) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return v
+}
+
 func (ec *executionContext) marshalNGameBoard2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGameBoard(ctx context.Context, sel ast.SelectionSet, v models.GameBoard) graphql.Marshaler {
 	return ec._GameBoard(ctx, sel, &v)
 }
@@ -3855,6 +4128,16 @@ func (ec *executionContext) marshalNGameState2githubᚗcomᚋamanzaneroᚋwordle
 	return v
 }
 
+func (ec *executionContext) unmarshalNGuessError2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessError(ctx context.Context, v interface{}) (models.GuessError, error) {
+	var res models.GuessError
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNGuessError2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessError(ctx context.Context, sel ast.SelectionSet, v models.GuessError) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) marshalNGuessResult2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessResult(ctx context.Context, sel ast.SelectionSet, v models.GuessResult) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -3865,7 +4148,11 @@ func (ec *executionContext) marshalNGuessResult2githubᚗcomᚋamanzaneroᚋword
 	return ec._GuessResult(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNGuessState2ᚕᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessStateᚄ(ctx context.Context, sel ast.SelectionSet, v [][]*models.GuessState) graphql.Marshaler {
+func (ec *executionContext) marshalNGuessState2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessState(ctx context.Context, sel ast.SelectionSet, v models.GuessState) graphql.Marshaler {
+	return ec._GuessState(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNGuessState2ᚕgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessStateᚄ(ctx context.Context, sel ast.SelectionSet, v []models.GuessState) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -3889,7 +4176,7 @@ func (ec *executionContext) marshalNGuessState2ᚕᚕᚖgithubᚗcomᚋamanzaner
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNGuessState2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessStateᚄ(ctx, sel, v[i])
+			ret[i] = ec.marshalNGuessState2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessState(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -3909,7 +4196,7 @@ func (ec *executionContext) marshalNGuessState2ᚕᚕᚖgithubᚗcomᚋamanzaner
 	return ret
 }
 
-func (ec *executionContext) marshalNGuessState2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessStateᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.GuessState) graphql.Marshaler {
+func (ec *executionContext) marshalNGuessState2ᚕᚕgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessStateᚄ(ctx context.Context, sel ast.SelectionSet, v [][]models.GuessState) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -3933,7 +4220,7 @@ func (ec *executionContext) marshalNGuessState2ᚕᚖgithubᚗcomᚋamanzanero�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNGuessState2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessState(ctx, sel, v[i])
+			ret[i] = ec.marshalNGuessState2ᚕgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessStateᚄ(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -3951,16 +4238,6 @@ func (ec *executionContext) marshalNGuessState2ᚕᚖgithubᚗcomᚋamanzanero�
 	}
 
 	return ret
-}
-
-func (ec *executionContext) marshalNGuessState2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessState(ctx context.Context, sel ast.SelectionSet, v *models.GuessState) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._GuessState(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
@@ -4113,6 +4390,21 @@ func (ec *executionContext) unmarshalNLetterGuess2githubᚗcomᚋamanzaneroᚋwo
 
 func (ec *executionContext) marshalNLetterGuess2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐLetterGuess(ctx context.Context, sel ast.SelectionSet, v models.LetterGuess) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) unmarshalNNewUser2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐNewUser(ctx context.Context, v interface{}) (models.NewUser, error) {
+	res, err := ec.unmarshalInputNewUser(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNNewUserResult2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐNewUserResult(ctx context.Context, sel ast.SelectionSet, v models.NewUserResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._NewUserResult(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {

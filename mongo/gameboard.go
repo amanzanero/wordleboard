@@ -12,7 +12,7 @@ import (
 type persistedGameBoard struct {
 	ID      primitive.ObjectID `bson:"_id,omitempty"`
 	Day     int                `bson:"day"`
-	Guesses []guess            `bson:"guesses"`
+	Guesses [][]guess          `bson:"guesses"`
 	State   models.GameState   `bson:"state"`
 	UserId  primitive.ObjectID `bson:"userId"`
 }
@@ -39,12 +39,16 @@ func (s *Service) FindGameBoardByUserAndDay(ctx context.Context, userId string, 
 		return nil, models.ErrRepoFailed
 	}
 
-	guesses := make([]*models.GuessState, len(board.Guesses))
-	for i, guess := range board.Guesses {
-		guesses[i] = &models.GuessState{
-			Letter: guess.Letter,
-			Guess:  guess.Guess,
+	guesses := make([][]models.GuessState, len(board.Guesses))
+	for i, guessRow := range board.Guesses {
+		row := make([]models.GuessState, 5)
+		for j, guess := range guessRow {
+			row[j] = models.GuessState{
+				Letter: guess.Letter,
+				Guess:  guess.Guess,
+			}
 		}
+		guesses[i] = row
 	}
 
 	return &models.GameBoard{
@@ -56,27 +60,46 @@ func (s *Service) FindGameBoardByUserAndDay(ctx context.Context, userId string, 
 	}, nil
 }
 
-func (s *Service) InsertGameBoard(ctx context.Context, gameboard models.GameBoard) error {
-	userOid, _ := primitive.ObjectIDFromHex(gameboard.UserId)
-	guesses := make([]guess, len(gameboard.Guesses))
-	for i, g := range gameboard.Guesses {
-		guesses[i] = guess{
-			Letter: g.Letter,
-			Guess:  g.Guess,
+func modelToPersistedModel(gb models.GameBoard) persistedGameBoard {
+	userOid, _ := primitive.ObjectIDFromHex(gb.UserId)
+	guesses := make([][]guess, len(gb.Guesses))
+	for i, guessRow := range gb.Guesses {
+		row := make([]guess, len(guessRow))
+		for j, g := range guessRow {
+			row[j] = guess{
+				Letter: g.Letter,
+				Guess:  g.Guess,
+			}
 		}
+		guesses[i] = row
 	}
-	persist := persistedGameBoard{
-		Day:     gameboard.Day,
+	return persistedGameBoard{
+		Day:     gb.Day,
 		Guesses: guesses,
-		State:   gameboard.State,
+		State:   gb.State,
 		UserId:  userOid,
 	}
+}
 
+func (s *Service) InsertGameBoard(ctx context.Context, gameBoard models.GameBoard) error {
+	persist := modelToPersistedModel(gameBoard)
 	collection := s.database.Collection("gameboards")
 	_, err := collection.InsertOne(ctx, persist)
 	if err != nil {
 		return err
 	}
+	return nil
+}
 
+func (s *Service) UpdateGameBoardById(ctx context.Context, id string, gameBoard models.GameBoard) error {
+	gameBoardOid, _ := primitive.ObjectIDFromHex(id)
+	persist := modelToPersistedModel(gameBoard)
+	collection := s.database.Collection("gameboards")
+	result, err := collection.ReplaceOne(ctx, bson.M{"_id": gameBoardOid}, persist)
+	if err != nil {
+		return err
+	} else if result.MatchedCount == 0 {
+		return models.ErrNotFound
+	}
 	return nil
 }

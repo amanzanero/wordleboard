@@ -13,5 +13,5 @@ import (
 type Resolver struct {
 	WordleService wordle.Service
 	UsersService  users.Service
-	Logger        logrus.Logger
+	Logger        *logrus.Logger
 }
