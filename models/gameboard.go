@@ -21,9 +21,9 @@ type GameBoardRepo interface {
 
 type GameBoard struct {
 	ID      string
-	Day     int           `json:"day"`
-	Guesses []*GuessState `json:"guesses"`
-	State   GameState     `json:"state"`
+	Day     int            `json:"day"`
+	Guesses [][]GuessState `json:"guesses"`
+	State   GameState      `json:"state"`
 	UserId  string
 }
 
@@ -117,3 +117,15 @@ func (e *LetterGuess) UnmarshalGQL(v interface{}) error {
 func (e LetterGuess) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
+
+type GuessResult interface {
+	IsGuessResult()
+}
+
+func (GameBoard) IsGuessResult() {}
+
+type InvalidGuess struct {
+	Message string `json:"message"`
+}
+
+func (InvalidGuess) IsGuessResult() {}

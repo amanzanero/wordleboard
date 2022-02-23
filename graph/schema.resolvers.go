@@ -12,10 +12,6 @@ import (
 	"github.com/amanzanero/wordleboard/models"
 )
 
-func (r *gameBoardResolver) User(ctx context.Context, obj *models.GameBoard) (*models.User, error) {
-	return r.UsersService.GetUserById(obj.UserId)
-}
-
 func (r *leaderboardResolver) Members(ctx context.Context, obj *models.Leaderboard) ([]*models.User, error) {
 	return []*models.User{{DisplayName: ""}}, nil
 }
@@ -24,18 +20,17 @@ func (r *leaderboardResolver) Stats(ctx context.Context, obj *models.Leaderboard
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) Guess(ctx context.Context, input string) (*models.GameBoard, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) Guess(ctx context.Context, input string) (models.GuessResult, error) {
+	board, err := r.WordleService.Guess(ctx, FakeUser.ID, input)
+	if err != nil {
+		r.Logger.Error("guess mutation failed", err)
+		return nil, err
+	}
+	return board, nil
 }
 
 func (r *mutationResolver) CreateLeaderboard(ctx context.Context, input string) (*models.Leaderboard, error) {
 	panic(fmt.Errorf("not implemented"))
-}
-
-var FakeUser = models.User{
-	ID:          "62141fefd1a861b9671c10ee",
-	DisplayName: "",
-	OauthId:     "",
 }
 
 func (r *queryResolver) Day(ctx context.Context, input int) (*models.GameBoard, error) {
@@ -70,9 +65,6 @@ func (r *userStatResolver) User(ctx context.Context, obj *models.UserStat) (*mod
 	panic(fmt.Errorf("not implemented"))
 }
 
-// GameBoard returns generated.GameBoardResolver implementation.
-func (r *Resolver) GameBoard() generated.GameBoardResolver { return &gameBoardResolver{r} }
-
 // Leaderboard returns generated.LeaderboardResolver implementation.
 func (r *Resolver) Leaderboard() generated.LeaderboardResolver { return &leaderboardResolver{r} }
 
@@ -88,9 +80,27 @@ func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
 // UserStat returns generated.UserStatResolver implementation.
 func (r *Resolver) UserStat() generated.UserStatResolver { return &userStatResolver{r} }
 
-type gameBoardResolver struct{ *Resolver }
 type leaderboardResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
 type userStatResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (r *gameBoardResolver) User(ctx context.Context, obj *models.GameBoard) (*models.User, error) {
+	return r.UsersService.GetUserById(obj.UserId)
+}
+func (r *Resolver) GameBoard() generated.GameBoardResolver { return &gameBoardResolver{r} }
+
+type gameBoardResolver struct{ *Resolver }
+
+var FakeUser = models.User{
+	ID:          "62141fefd1a861b9671c10ee",
+	DisplayName: "",
+	OauthId:     "",
+}

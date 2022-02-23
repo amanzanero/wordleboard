@@ -3,15 +3,21 @@ package wordle
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/amanzanero/wordleboard/models"
 	"github.com/sirupsen/logrus"
+	"strings"
 	"sync"
 	"time"
 )
 
 var (
-	day1     *time.Time // June 19, 2021
+	day1     time.Time // June 19, 2021
 	day1Once sync.Once
+
+	guesses       map[string]bool
+	solutions     []string
+	solutionsOnce sync.Once
 )
 
 type Service struct {
@@ -43,7 +49,7 @@ func (s *Service) GetTodayGameOrCreateNewGame(ctx context.Context, user models.U
 	// if none exists make a new board
 	gameBoard := models.GameBoard{
 		Day:     day,
-		Guesses: make([]*models.GuessState, 0),
+		Guesses: make([][]models.GuessState, 0),
 		State:   models.GameStateInProgress,
 		UserId:  user.ID,
 	}
@@ -65,16 +71,74 @@ func (s *Service) GetGameByDay(ctx context.Context, userId string, day int) (*mo
 	return board, nil
 }
 
-func Guess(gameBoard models.GameBoard, guess string) (*models.GameBoard, error) {
-	return nil, nil
+func (s *Service) Guess(ctx context.Context, userId, guess string) (models.GuessResult, error) {
+	solutionsOnce.Do(func() {
+		_guesses, err := loadGuesses()
+		if err != nil {
+			panic(err)
+		}
+		guesses = _guesses
+
+		_solutions, err := loadSolutions()
+		if err != nil {
+			panic(err)
+		}
+		solutions = _solutions
+	})
+
+	// today's board
+	today := timeToWordleDay(time.Now())
+	gameBoard, lookupErr := s.repo.FindGameBoardByUserAndDay(ctx, userId, today)
+	if lookupErr != nil {
+		s.logger.Warn(lookupErr)
+		return nil, lookupErr
+	}
+
+	// is game done?
+	if gameBoard.State != models.GameStateInProgress {
+		return gameBoard, nil
+	}
+
+	// see if guess is valid
+	if len(guess) != 5 {
+		return gameBoard, nil
+	}
+
+	if _, ok := guesses[guess]; !ok {
+		solution := solutions[today]
+		newGuess := make([]models.GuessState, 5)
+		won := true
+		for i, l := range guess {
+			newGuess[i].Letter = string(l)
+			if string(l) == string(solution[i]) {
+				newGuess[i].Guess = models.LetterGuessInLocation
+			} else if strings.Contains(solution, string(l)) {
+				won = false
+				newGuess[i].Guess = models.LetterGuessInWord
+			} else {
+				won = false
+				newGuess[i].Guess = models.LetterGuessIncorrect
+			}
+		}
+		gameBoard.Guesses = append(gameBoard.Guesses, newGuess)
+
+		// evaluate winning state
+		if won {
+			gameBoard.State = models.GameStateWon
+		} else if len(gameBoard.Guesses) == 6 {
+			gameBoard.State = models.GameStateLost
+		}
+		return gameBoard, nil
+	} else {
+		return models.InvalidGuess{Message: fmt.Sprintf("\"%s\" is not a word", guess)}, nil
+	}
 }
 
 func timeToWordleDay(t time.Time) int {
 	day1Once.Do(func() {
-		_t := time.Unix(1624086000, 0).UTC()
-		day1 = &_t
+		day1 = time.Unix(1624086000, 0).UTC()
 	})
 
-	diff := int(t.UTC().Sub(*day1).Hours()) / 24
+	diff := int(t.UTC().Sub(day1).Hours()) / 24
 	return diff
 }

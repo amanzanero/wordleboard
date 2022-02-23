@@ -19,9 +19,15 @@ enum GameState {
 type GameBoard {
   day: Int!
   user: User!
-  guesses: [GuessState!]!
+  guesses: [[GuessState!]!]!
   state: GameState!
 }
+
+type InvalidGuess {
+  message: String!
+}
+
+union GuessResult = GameBoard | InvalidGuess
 
 # Leaderboard State
 type User {
@@ -58,6 +64,6 @@ type Query {
 }
 
 type Mutation {
-  guess(input: String!): GameBoard! # guesses only apply to today's board
+  guess(input: String!): GuessResult! # guesses only apply to today's board
   createLeaderboard(input: String!): Leaderboard!
 }
