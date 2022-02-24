@@ -1,0 +1,11 @@
+.half {
+    flex: 0.5;
+}
+
+.oneAndAHalf {
+    flex: 1.5
+}
+
+.small {
+    font-size: 12px;
+}

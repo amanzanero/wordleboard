@@ -10,6 +10,7 @@ import {
   GuessDocument,
   GuessMutation,
   GuessMutationVariables,
+  InvalidGuess,
   TodayDocument,
   TodayQuery,
 } from "codegen";
@@ -34,9 +35,9 @@ export function useGuessMutation(
     {
       ...options,
       onSuccess: (data, x, y) => {
-        if (options?.onSuccess !== undefined) options.onSuccess(data, x, y);
-        if (data.__typename === "GameBoard") {
-          queryClient.setQueryData(["gameBoard", "today"], data);
+        if ((<InvalidGuess>data).error === undefined) {
+          if (options?.onSuccess !== undefined) options.onSuccess(data, x, y);
+          queryClient.setQueryData(["todayBoard"], data);
         }
       },
     },
@@ -48,7 +49,7 @@ export function useTodayGameBoard(
 ) {
   const request = useGraphqlRequest();
   return useQuery<TodayQuery["todayBoard"]>(
-    ["gameBoard", "today"],
+    ["todayBoard"],
     () => request(TodayDocument).then((data) => data.todayBoard),
     options,
   );
