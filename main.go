@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"flag"
+	"fmt"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/amanzanero/wordleboard/config"
 	"github.com/amanzanero/wordleboard/mongo"
 	"github.com/amanzanero/wordleboard/users"
 	"github.com/amanzanero/wordleboard/wordle"
@@ -25,8 +28,13 @@ func main() {
 	isDev := flag.Bool("dev", false, "run in development mode")
 	flag.Parse()
 
-	logFormat := &log.TextFormatter{
-		FullTimestamp: true,
+	var logFormat log.Formatter
+	if *isDev {
+		logFormat = &log.TextFormatter{
+			FullTimestamp: true,
+		}
+	} else {
+		logFormat = &log.JSONFormatter{}
 	}
 	log.SetOutput(os.Stdout)
 	logger := &log.Logger{
@@ -38,41 +46,55 @@ func main() {
 		ReportCaller: false,
 	}
 
-	mongoService, err := mongo.NewMongoService("mongodb://root:rootpassword@localhost:27017")
+	mongoService, err := mongo.NewMongoService(config.MongoUri)
 	if err != nil {
 		panic(err)
 	} else {
 		logger.Info("connected to mongo")
 	}
+
+	// decode firebase credentials
+	credentialsBytes, credentialsErr := base64.StdEncoding.DecodeString(config.FirebaseCredentials)
+	if err != nil {
+		logger.Fatalf("firebase credentials error: %v", credentialsErr)
+	}
+	authClient, authClientErr := users.NewAuthClient(context.Background(), credentialsBytes)
+	if authClientErr != nil {
+		logger.Fatalf("failed to initialized auth.Client: %v", authClientErr)
+	}
+	userService := users.Service{Client: authClient, Repo: mongoService, Logger: logger}
 	resolver := &graph.Resolver{
 		WordleService: wordle.NewService(
 			mongoService,
 			logger,
 		),
-		UsersService: users.Service{},
+		UsersService: userService,
+		Logger:       logger,
 	}
 	gqlServer := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: resolver}))
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
-	r.Use(Logger("api", logger))
-	r.Handle("/graphql", gqlServer)
+	r.Use(Logger(logger))
+	r.Handle("/graphql", userService.AuthMiddleware(gqlServer))
 
 	if *isDev {
+		r.Get("/development/token/{uid}", userService.CustomTokenRoute(config.FirebaseEndpoint))
 		r.Handle("/graphiql", playground.Handler("GraphQL playground", "/graphql"))
+	} else {
 		r.Handle("/*", http.FileServer(http.Dir("./client/dist")))
 	}
 
 	httpServer := &http.Server{
-		Addr:    ":8080",
+		Addr:    fmt.Sprintf(":%s", config.Port),
 		Handler: r,
 	}
 	httpServer.RegisterOnShutdown(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
-		err := mongoService.Disconnect(ctx)
-		if err != nil {
-			logger.Error(err)
+		disconnectErr := mongoService.Disconnect(ctx)
+		if disconnectErr != nil {
+			logger.Error(disconnectErr)
 		} else {
 			logger.Info("mongo disconnected")
 		}
@@ -86,7 +108,7 @@ func main() {
 			return
 		}
 	}()
-	logger.Info("running on port 8080")
+	logger.Infof("running on port %s", config.Port)
 
 	interrupted := make(chan os.Signal)
 	signal.Notify(interrupted, syscall.SIGTERM, os.Interrupt)

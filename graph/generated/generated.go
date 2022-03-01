@@ -89,8 +89,8 @@ type ComplexityRoot struct {
 	Query struct {
 		Day         func(childComplexity int, input int) int
 		Leaderboard func(childComplexity int, input string) int
+		Me          func(childComplexity int) int
 		TodayBoard  func(childComplexity int) int
-		User        func(childComplexity int, input string) int
 	}
 
 	User struct {
@@ -123,7 +123,7 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Day(ctx context.Context, input int) (*models.GameBoard, error)
 	TodayBoard(ctx context.Context) (*models.GameBoard, error)
-	User(ctx context.Context, input string) (*models.User, error)
+	Me(ctx context.Context) (*models.User, error)
 	Leaderboard(ctx context.Context, input string) (*models.Leaderboard, error)
 }
 type UserResolver interface {
@@ -307,24 +307,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Leaderboard(childComplexity, args["input"].(string)), true
 
+	case "Query.me":
+		if e.complexity.Query.Me == nil {
+			break
+		}
+
+		return e.complexity.Query.Me(childComplexity), true
+
 	case "Query.todayBoard":
 		if e.complexity.Query.TodayBoard == nil {
 			break
 		}
 
 		return e.complexity.Query.TodayBoard(childComplexity), true
-
-	case "Query.user":
-		if e.complexity.Query.User == nil {
-			break
-		}
-
-		args, err := ec.field_Query_user_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.User(childComplexity, args["input"].(string)), true
 
 	case "User.displayName":
 		if e.complexity.User.DisplayName == nil {
@@ -529,7 +524,7 @@ type Leaderboard {
 type Query {
   day(input: Int!): GameBoard
   todayBoard: GameBoard!
-  user(input: ID!): User!
+  me: User!
   leaderboard(input: ID!): Leaderboard
 }
 
@@ -622,21 +617,6 @@ func (ec *executionContext) field_Query_day_args(ctx context.Context, rawArgs ma
 }
 
 func (ec *executionContext) field_Query_leaderboard_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["input"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNID2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_user_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -1379,7 +1359,7 @@ func (ec *executionContext) _Query_todayBoard(ctx context.Context, field graphql
 	return ec.marshalNGameBoard2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGameBoard(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_user(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_me(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1395,16 +1375,9 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_user_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().User(rctx, args["input"].(string))
+		return ec.resolvers.Query().Me(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3444,7 +3417,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
-		case "user":
+		case "me":
 			field := field
 
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -3453,7 +3426,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_user(ctx, field)
+				res = ec._Query_me(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

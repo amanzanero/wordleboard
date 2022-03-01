@@ -1,0 +1,8 @@
+.idea/
+mongodata/
+.gitignore/
+.docker-compose.yaml
+firebase-admin-credentials.json
+client/node_modules/
+client/.next/
+client/.dist/

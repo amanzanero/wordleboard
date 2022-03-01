@@ -10,10 +10,11 @@ import (
 
 	"github.com/amanzanero/wordleboard/graph/generated"
 	"github.com/amanzanero/wordleboard/models"
+	"github.com/amanzanero/wordleboard/users"
 )
 
 func (r *gameBoardResolver) User(ctx context.Context, obj *models.GameBoard) (*models.User, error) {
-	return r.UsersService.GetUserById(obj.UserId)
+	return r.UsersService.GetUserById(ctx, obj.UserId)
 }
 
 func (r *leaderboardResolver) Members(ctx context.Context, obj *models.Leaderboard) ([]*models.User, error) {
@@ -25,9 +26,10 @@ func (r *leaderboardResolver) Stats(ctx context.Context, obj *models.Leaderboard
 }
 
 func (r *mutationResolver) Guess(ctx context.Context, input string) (models.GuessResult, error) {
-	board, err := r.WordleService.Guess(ctx, FakeUser.ID, input)
+	user := users.ForContext(ctx)
+	board, err := r.WordleService.Guess(ctx, user.ID, input)
 	if err != nil {
-		r.Logger.Error("guess mutation failed", err)
+		r.Logger.Errorf("guess mutation failed: %v", err)
 		return nil, err
 	}
 	return board, nil
@@ -44,17 +46,21 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input models.NewUser)
 func (r *queryResolver) Day(ctx context.Context, input int) (*models.GameBoard, error) {
 	cancelCtx, cancel := context.WithTimeout(ctx, time.Second*30)
 	defer cancel()
-	return r.WordleService.GetGameByDay(cancelCtx, FakeUser.ID, input)
+
+	user := users.ForContext(ctx)
+	return r.WordleService.GetGameByDay(cancelCtx, user.ID, input)
 }
 
 func (r *queryResolver) TodayBoard(ctx context.Context) (*models.GameBoard, error) {
 	cancelCtx, cancel := context.WithTimeout(ctx, time.Second*30)
 	defer cancel()
-	return r.WordleService.GetTodayGameOrCreateNewGame(cancelCtx, FakeUser, time.Now())
+
+	user := users.ForContext(ctx)
+	return r.WordleService.GetTodayGameOrCreateNewGame(cancelCtx, user.ID, time.Now())
 }
 
-func (r *queryResolver) User(ctx context.Context, input string) (*models.User, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *queryResolver) Me(ctx context.Context) (*models.User, error) {
+	return users.ForContext(ctx), nil
 }
 
 func (r *queryResolver) Leaderboard(ctx context.Context, input string) (*models.Leaderboard, error) {
@@ -97,15 +103,3 @@ type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
 type userStatResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-var FakeUser = models.User{
-	ID:          "62141fefd1a861b9671c10ee",
-	DisplayName: "",
-	OauthId:     "",
-}

@@ -3,7 +3,6 @@ package wordle
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/amanzanero/wordleboard/models"
 	"github.com/sirupsen/logrus"
 	"strings"
@@ -35,10 +34,10 @@ func NewService(
 	}
 }
 
-func (s *Service) GetTodayGameOrCreateNewGame(ctx context.Context, user models.User, t time.Time) (*models.GameBoard, error) {
+func (s *Service) GetTodayGameOrCreateNewGame(ctx context.Context, userId string, t time.Time) (*models.GameBoard, error) {
 	// find today's if it already exists
 	day := timeToWordleDay(t)
-	board, lookupErr := s.repo.FindGameBoardByUserAndDay(ctx, user.ID, day)
+	board, lookupErr := s.repo.FindGameBoardByUserAndDay(ctx, userId, day)
 	if lookupErr == nil {
 		return board, nil
 	} else if !errors.Is(lookupErr, models.ErrNotFound) {
@@ -51,7 +50,7 @@ func (s *Service) GetTodayGameOrCreateNewGame(ctx context.Context, user models.U
 		Day:     day,
 		Guesses: make([][]models.GuessState, 0),
 		State:   models.GameStateInProgress,
-		UserId:  user.ID,
+		UserId:  userId,
 	}
 	insertErr := s.repo.InsertGameBoard(ctx, gameBoard)
 	if insertErr != nil {
@@ -101,10 +100,10 @@ func (s *Service) Guess(ctx context.Context, userId, guess string) (models.Guess
 
 	// see if guess is valid
 	if len(guess) != 5 {
-		return gameBoard, nil
+		return models.InvalidGuess{Error: models.GuessErrorNotAWord}, nil
 	}
 
-	if _, ok := guesses[guess]; !ok {
+	if _, ok := guesses[guess]; ok {
 		solution := solutions[today]
 		newGuess := make([]models.GuessState, 5)
 		won := true
@@ -128,15 +127,19 @@ func (s *Service) Guess(ctx context.Context, userId, guess string) (models.Guess
 		} else if len(gameBoard.Guesses) == 6 {
 			gameBoard.State = models.GameStateLost
 		}
+		updateErr := s.repo.UpdateGameBoardById(ctx, gameBoard.ID, *gameBoard)
+		if updateErr != nil {
+			return nil, updateErr
+		}
 		return gameBoard, nil
 	} else {
-		return models.InvalidGuess{Message: fmt.Sprintf("\"%s\" is not a word", guess)}, nil
+		return models.InvalidGuess{Error: models.GuessErrorNotAWord}, nil
 	}
 }
 
 func timeToWordleDay(t time.Time) int {
 	day1Once.Do(func() {
-		day1 = time.Unix(1624086000, 0).UTC()
+		day1 = time.Unix(1624086000, 0).UTC() // June 19, 2021 12AM PST
 	})
 
 	diff := int(t.UTC().Sub(day1).Hours()) / 24

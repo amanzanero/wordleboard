@@ -9,7 +9,7 @@ import (
 )
 
 // Logger returns a request logging middleware
-func Logger(category string, logger logrus.FieldLogger) func(h http.Handler) http.Handler {
+func Logger(logger logrus.FieldLogger) func(h http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			reqID := middleware.GetReqID(r.Context())
@@ -23,6 +23,10 @@ func Logger(category string, logger logrus.FieldLogger) func(h http.Handler) htt
 				scheme := "http"
 				if r.TLS != nil {
 					scheme = "https"
+				}
+				category := "static"
+				if r.RequestURI == "/graphql" {
+					category = "graphql"
 				}
 				fields := logrus.Fields{
 					"status_code":      ww.Status(),

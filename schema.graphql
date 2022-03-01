@@ -81,7 +81,7 @@ type Leaderboard {
 type Query {
   day(input: Int!): GameBoard
   todayBoard: GameBoard!
-  user(input: ID!): User!
+  me: User!
   leaderboard(input: ID!): Leaderboard
 }
 

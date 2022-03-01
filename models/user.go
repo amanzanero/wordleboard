@@ -1,13 +1,16 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strconv"
 )
 
 type UserRepo interface {
-	FindUserById()
+	FindUserById(ctx context.Context, userId string) (*User, error)
+	FindUserByUuid(ctx context.Context, oauthUuid string) (*User, error)
+	CreateUser(ctx context.Context, user NewUser) (*User, error)
 }
 type User struct {
 	ID          string `json:"id"`
