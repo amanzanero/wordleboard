@@ -6,9 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "next lint --fix",
     "generate": "graphql-codegen --config codegen.yml",
-    "export": "rm -rf .next && next build && next export -o dist"
+    "export": "next build && next export -o dist"
   },
   "dependencies": {
     "axios": "^0.26.0",
