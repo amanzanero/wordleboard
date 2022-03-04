@@ -19,10 +19,7 @@ func (s *Service) createCustomAuthToken(ctx context.Context, UID string) (string
 	return token, nil
 }
 
-func (s *Service) CustomTokenRoute(tokenValidationEndpoint string) http.HandlerFunc {
-	type response struct {
-		Token string `json:"token"`
-	}
+func (s *Service) AccessToken(tokenValidationEndpoint string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uid := chi.URLParam(r, "uid")
 		token, err := s.createCustomAuthToken(r.Context(), uid)
@@ -60,15 +57,24 @@ func (s *Service) CustomTokenRoute(tokenValidationEndpoint string) http.HandlerF
 			respondWithError(w, http.StatusInternalServerError, decodeErr.Error())
 			return
 		}
-		responseToken, ok := httpResponse["idToken"].(string)
-		if !ok {
-			respondWithError(w, http.StatusInternalServerError, "could not get id token")
+		RespondWithJSON(w, http.StatusOK, httpResponse)
+	}
+}
+
+func (s *Service) CustomToken() http.HandlerFunc {
+	type response struct {
+		Token string `json:"token"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		uid := chi.URLParam(r, "uid")
+		token, err := s.createCustomAuthToken(r.Context(), uid)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		response := new(response)
-		response.Token = responseToken
-		RespondWithJSON(w, http.StatusOK, response)
+		res := response{Token: token}
+		RespondWithJSON(w, http.StatusOK, res)
 	}
 }
 

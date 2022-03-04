@@ -1,14 +1,32 @@
 import type { NextPage } from "next";
 import { useGuessMutation, useTodayGameBoard } from "query/guess";
 import GameBoard from "components/GameBoard";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { GameState } from "../codegen";
 import Loader from "../components/Loader";
 import Keyboard from "../components/Keyboard";
+import BaseLayout from "../components/BaseLayout";
+import { useFirebaseUser } from "../library/auth";
+import { useRouter } from "next/router";
 
 const Game: NextPage = () => {
+  const { user, loading: userLoading } = useFirebaseUser();
   const [guess, setCurrentGuess] = useState<string[]>([]);
-  const { data } = useTodayGameBoard();
+  const { data, refetch } = useTodayGameBoard({ enabled: false });
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!userLoading && !!user) {
+      refetch();
+    }
+  }, [refetch, user, userLoading]);
+
+  useEffect(() => {
+    if (!userLoading && !user) {
+      router.push("/");
+    }
+  }, [userLoading, router, user]);
+
   const guessMutation = useGuessMutation({
     onSuccess: () => {
       setCurrentGuess([]);
@@ -45,13 +63,7 @@ const Game: NextPage = () => {
   };
 
   return (
-    <div className="flex flex-col items-center h-full">
-      <div className="flex justify-center py-2">
-        <h1 className="text-3xl font-bold text-black dark:text-white">WordleBoard</h1>
-      </div>
-
-      <hr className="w-full dark:border-gray-600" />
-
+    <BaseLayout>
       <div className="max-w-lg w-full flex flex-col flex-grow pb-2 px-1">
         {!!data ? (
           <GameBoard state={data} currentWord={guess} />
@@ -63,7 +75,7 @@ const Game: NextPage = () => {
 
         <Keyboard onLetterPress={onLetterPress} onGuess={onGuess} onBackspace={onBackspace} />
       </div>
-    </div>
+    </BaseLayout>
   );
 };
 

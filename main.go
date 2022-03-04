@@ -79,7 +79,8 @@ func main() {
 	r.Handle("/graphql", userService.AuthMiddleware(gqlServer))
 
 	if *isDev {
-		r.Get("/development/token/{uid}", userService.CustomTokenRoute(config.FirebaseEndpoint))
+		r.Get("/api/token/{uid}", userService.AccessToken(config.FirebaseEndpoint))
+		r.Get("/api/customToken/{uid}", userService.CustomToken())
 		r.Handle("/graphiql", playground.Handler("GraphQL playground", "/graphql"))
 	} else {
 		r.Handle("/*", http.FileServer(http.Dir("./client/dist")))

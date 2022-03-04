@@ -3,6 +3,8 @@ mongodata/
 .gitignore/
 .docker-compose.yaml
 firebase-admin-credentials.json
+schema.graphql
+
 client/node_modules/
 client/.next/
 client/.dist/

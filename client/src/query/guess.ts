@@ -17,19 +17,11 @@ import {
 import { GraphQLError } from "graphql";
 
 export function useGuessMutation(
-  options?: UseMutationOptions<
-    GuessMutation["guess"],
-    GraphQLError,
-    GuessMutationVariables
-  >,
+  options?: UseMutationOptions<GuessMutation["guess"], GraphQLError, GuessMutationVariables>,
 ) {
   const request = useGraphqlRequest();
   const queryClient = useQueryClient();
-  return useMutation<
-    GuessMutation["guess"],
-    GraphQLError,
-    GuessMutationVariables
-  >(
+  return useMutation<GuessMutation["guess"], GraphQLError, GuessMutationVariables>(
     ["gameBoard"],
     (args) => request(GuessDocument, args).then((data) => data.guess),
     {
@@ -44,9 +36,7 @@ export function useGuessMutation(
   );
 }
 
-export function useTodayGameBoard(
-  options?: UseQueryOptions<TodayQuery["todayBoard"]>,
-) {
+export function useTodayGameBoard(options?: UseQueryOptions<TodayQuery["todayBoard"]>) {
   const request = useGraphqlRequest();
   return useQuery<TodayQuery["todayBoard"]>(
     ["todayBoard"],

@@ -1,15 +1,37 @@
 import type { NextPage } from "next";
-import React from "react";
+import React, { useEffect } from "react";
+import BaseLayout from "components/BaseLayout";
+import FacebookLoginButton from "components/FacebookLoginButton";
+import GoogleLoginButton from "components/GoogleLoginButton";
+import { useFirebaseAuth, useFirebaseUser } from "library/auth";
+import { useRouter } from "next/router";
+import { IS_DEV } from "../constants";
 
 const Home: NextPage = () => {
-  return (
-    <div className="flex flex-col items-center h-full">
-      <div className="flex justify-center py-2">
-        <h1 className="text-3xl font-bold text-black dark:text-white">WordleBoard</h1>
-      </div>
+  const { user, loading } = useFirebaseUser();
+  const { facebookAuth, googleAuth, devLogin } = useFirebaseAuth();
+  const router = useRouter();
 
-      <hr className="w-full dark:border-gray-600" />
-    </div>
+  useEffect(() => {
+    if (!loading && !!user) {
+      router.push("/game");
+    }
+  }, [loading, router, user]);
+
+  return (
+    <BaseLayout>
+      <div className="flex-grow h-full flex flex-col justify-center space-y-4">
+        <FacebookLoginButton onClick={facebookAuth} />
+        <GoogleLoginButton onClick={googleAuth} />
+        {IS_DEV && (
+          <button
+            onClick={devLogin}
+            className="bg-white dark:bg-blue-600 text-gray-600 dark:text-white p-2 text-lg rounded hover:ring-2 border border-gray-200 dark:border-0">
+            Login with dev user
+          </button>
+        )}
+      </div>
+    </BaseLayout>
   );
 };
 
