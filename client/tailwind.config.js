@@ -4,6 +4,7 @@ module.exports = {
     extend: {
       colors: {
         fb: "#4267b2",
+        absent: "#3a3a3c",
       },
     },
   },

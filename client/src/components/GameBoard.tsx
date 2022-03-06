@@ -1,5 +1,6 @@
 import React from "react";
 import { GuessState, LetterGuess, TodayQuery } from "codegen";
+import { classnames } from "../utils/classnames";
 
 const GameBoard: React.FC<{
   state: TodayQuery["todayBoard"];
@@ -43,7 +44,7 @@ const GuessBox: React.FC<{ guess: GuessState }> = ({ guess }) => {
   const color = () => {
     switch (guess.guess) {
       case LetterGuess.Incorrect:
-        return "bg-gray-600";
+        return "bg-gray-500 dark:bg-gray-700";
       case LetterGuess.InLocation:
         return "bg-green-600";
       case LetterGuess.InWord:
@@ -52,20 +53,23 @@ const GuessBox: React.FC<{ guess: GuessState }> = ({ guess }) => {
   };
   return (
     <div
-      className={`${color()} border-2 text-white uppercase w-full h-full font-extrabold text-3xl flex justify-center items-center border-gray-600 dark:border-gray-500`}>
+      className={classnames(
+        "text-white uppercase w-full h-full font-extrabold text-3xl flex justify-center items-center",
+        color(),
+      )}>
       {guess.letter}
     </div>
   );
 };
 
 const LetterBox: React.FC = ({ children }) => (
-  <div className="border-2 text-black dark:text-white uppercase w-full h-full font-extrabold text-3xl flex justify-center items-center border-gray-600 dark:border-gray-500">
+  <div className="border-2 text-black dark:text-white uppercase w-full h-full font-extrabold text-3xl flex justify-center items-center border-gray-400 dark:border-gray-600">
     {children}
   </div>
 );
 
 const TransparentLetterBox: React.FC = ({ children }) => (
-  <div className="border-2 text-transparent uppercase font-extrabold text-3xl flex justify-center items-center border-gray-600 dark:border-gray-500 w-full h-full">
+  <div className="border-2 text-transparent uppercase font-extrabold text-3xl flex justify-center items-center border-gray-400 dark:border-gray-600 w-full h-full">
     {children}
   </div>
 );

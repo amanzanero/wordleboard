@@ -27,8 +27,8 @@ export function useGuessMutation(
     {
       ...options,
       onSuccess: (data, x, y) => {
+        if (options?.onSuccess !== undefined) options.onSuccess(data, x, y);
         if ((<InvalidGuess>data).error === undefined) {
-          if (options?.onSuccess !== undefined) options.onSuccess(data, x, y);
           queryClient.setQueryData(["todayBoard"], data);
         }
       },

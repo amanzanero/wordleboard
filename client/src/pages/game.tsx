@@ -1,35 +1,37 @@
 import type { NextPage } from "next";
-import { useGuessMutation, useTodayGameBoard } from "query/guess";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import GameBoard from "components/GameBoard";
-import React, { useCallback, useEffect, useState } from "react";
-import { GameState } from "../codegen";
-import Loader from "../components/Loader";
-import Keyboard from "../components/Keyboard";
-import BaseLayout from "../components/BaseLayout";
-import { useFirebaseUser } from "../library/auth";
+import { useGuessMutation, useTodayGameBoard } from "query/guess";
+import { GameState, InvalidGuess, LetterGuess } from "codegen";
+import Loader from "components/Loader";
+import Keyboard, { KeyboardState } from "components/Keyboard";
+import BaseLayout from "components/BaseLayout";
+import { useFirebaseUser } from "library/auth";
 import { useRouter } from "next/router";
 
 const Game: NextPage = () => {
   const { user, loading: userLoading } = useFirebaseUser();
   const [guess, setCurrentGuess] = useState<string[]>([]);
-  const { data, refetch } = useTodayGameBoard({ enabled: false });
   const router = useRouter();
 
+  const { data, refetch } = useTodayGameBoard({ enabled: false });
+
+  // fetch board when we are sure we have a user otherwise redirect
   useEffect(() => {
     if (!userLoading && !!user) {
+      user ? refetch() : router.push("/");
       refetch();
     }
-  }, [refetch, user, userLoading]);
-
-  useEffect(() => {
-    if (!userLoading && !user) {
-      router.push("/");
-    }
-  }, [userLoading, router, user]);
+  }, [refetch, router, user, userLoading]);
 
   const guessMutation = useGuessMutation({
-    onSuccess: () => {
-      setCurrentGuess([]);
+    onSuccess: (d) => {
+      if ((d as InvalidGuess).error === undefined) {
+        // do flip animation
+      } else {
+        setCurrentGuess([]);
+        // do shake animation
+      }
     },
   });
 
@@ -62,6 +64,29 @@ const Game: NextPage = () => {
     }
   };
 
+  const keyboardState = useMemo(() => {
+    const correctSet: KeyboardState = {};
+    const inWordSet: KeyboardState = {};
+    const incorrectSet: KeyboardState = {};
+
+    data?.guesses.forEach((row) =>
+      row.forEach((guess) => {
+        switch (guess.guess) {
+          case LetterGuess.InLocation:
+            correctSet[guess.letter.toUpperCase()] = true;
+            break;
+          case LetterGuess.InWord:
+            inWordSet[guess.letter.toUpperCase()] = true;
+            break;
+          case LetterGuess.Incorrect:
+            incorrectSet[guess.letter.toUpperCase()] = true;
+            break;
+        }
+      }),
+    );
+    return { correctSet, inWordSet, incorrectSet };
+  }, [data?.guesses]);
+
   return (
     <BaseLayout>
       <div className="max-w-lg w-full flex flex-col flex-grow pb-2 px-1">
@@ -73,7 +98,14 @@ const Game: NextPage = () => {
           </div>
         )}
 
-        <Keyboard onLetterPress={onLetterPress} onGuess={onGuess} onBackspace={onBackspace} />
+        <Keyboard
+          onLetterPress={onLetterPress}
+          onGuess={onGuess}
+          onBackspace={onBackspace}
+          correctSet={keyboardState.correctSet}
+          inWordSet={keyboardState.inWordSet}
+          incorrectSet={keyboardState.incorrectSet}
+        />
       </div>
     </BaseLayout>
   );
