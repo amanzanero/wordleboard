@@ -5,7 +5,8 @@ import { classnames } from "../utils/classnames";
 const GameBoard: React.FC<{
   state: TodayQuery["todayBoard"];
   currentWord: string[];
-}> = ({ state, currentWord }) => {
+  shouldShake: boolean;
+}> = ({ state, currentWord, shouldShake }) => {
   const remaining: string[][] =
     state.guesses.length < 5 ? Array(5 - state.guesses.length).fill(Array(5).fill("")) : [];
   const wordArray = [...currentWord, ...Array(5 - currentWord.length).fill("")];
@@ -22,9 +23,13 @@ const GameBoard: React.FC<{
           </div>
         ))}
         {state.guesses.length < 5 && (
-          <div className="flex h-full w-full gap-x-1">
+          <div
+            className={classnames(
+              "flex h-full w-full gap-x-1",
+              shouldShake ? "animate-wiggle" : "",
+            )}>
             {wordArray.map((letter, i) => (
-              <LetterBox key={`current-${i}`}>{letter}</LetterBox>
+              <LetterBox key={`current-${letter}-${i}`} letter={letter} />
             ))}
           </div>
         )}
@@ -62,9 +67,16 @@ const GuessBox: React.FC<{ guess: GuessState }> = ({ guess }) => {
   );
 };
 
-const LetterBox: React.FC = ({ children }) => (
-  <div className="border-2 text-black dark:text-white uppercase w-full h-full font-extrabold text-3xl flex justify-center items-center border-gray-400 dark:border-gray-600">
-    {children}
+const LetterBox: React.FC<{ letter: string }> = ({ letter }) => (
+  <div
+    className={classnames(
+      "border-2 text-black dark:text-white uppercase w-full h-full font-extrabold text-3xl flex justify-center items-center",
+      letter === ""
+        ? "border-gray-400 dark:border-gray-600"
+        : "border-gray-500 dark:border-gray-700",
+      letter === "" ? "" : "animate-pop",
+    )}>
+    {letter}
   </div>
 );
 

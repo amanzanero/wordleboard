@@ -8,13 +8,16 @@ import Keyboard, { KeyboardState } from "components/Keyboard";
 import BaseLayout from "components/BaseLayout";
 import { useFirebaseUser } from "library/auth";
 import { useRouter } from "next/router";
+import { useQueryClient } from "react-query";
 
 const Game: NextPage = () => {
   const { user, loading: userLoading } = useFirebaseUser();
   const [guess, setCurrentGuess] = useState<string[]>([]);
   const router = useRouter();
+  const [wrongGuess, setWrongGuess] = useState(false);
+  const queryClient = useQueryClient();
 
-  const { data, refetch } = useTodayGameBoard({ enabled: false });
+  const { data, refetch } = useTodayGameBoard({ enabled: false, user: user?.uid || "" });
 
   // fetch board when we are sure we have a user otherwise redirect
   useEffect(() => {
@@ -27,10 +30,14 @@ const Game: NextPage = () => {
   const guessMutation = useGuessMutation({
     onSuccess: (d) => {
       if ((d as InvalidGuess).error === undefined) {
+        console.log("here");
+        setCurrentGuess([]);
+        queryClient.setQueryData(["todayBoard", `user-${user?.uid}`], data);
         // do flip animation
       } else {
-        setCurrentGuess([]);
         // do shake animation
+        setWrongGuess(true);
+        setTimeout(() => setWrongGuess(false), 250);
       }
     },
   });
@@ -61,6 +68,9 @@ const Game: NextPage = () => {
   const onGuess = () => {
     if (guess.length === 5) {
       guessMutation.mutate({ word: guess.join("").toLowerCase() });
+    } else {
+      setWrongGuess(true);
+      setTimeout(() => setWrongGuess(false), 250);
     }
   };
 
@@ -91,7 +101,7 @@ const Game: NextPage = () => {
     <BaseLayout>
       <div className="max-w-lg w-full flex flex-col flex-grow pb-2 px-1">
         {!!data ? (
-          <GameBoard state={data} currentWord={guess} />
+          <GameBoard state={data} currentWord={guess} shouldShake={wrongGuess} />
         ) : (
           <div className="flex-grow flex items-center">
             <Loader />
