@@ -3,7 +3,7 @@ package wordle
 import (
 	"context"
 	"errors"
-	"github.com/amanzanero/wordleboard/models"
+	"github.com/amanzanero/wordleboard/api/models"
 	"github.com/sirupsen/logrus"
 	"strings"
 	"sync"

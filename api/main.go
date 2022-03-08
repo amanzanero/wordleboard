@@ -6,10 +6,10 @@ import (
 	"flag"
 	"fmt"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/amanzanero/wordleboard/config"
-	"github.com/amanzanero/wordleboard/mongo"
-	"github.com/amanzanero/wordleboard/users"
-	"github.com/amanzanero/wordleboard/wordle"
+	"github.com/amanzanero/wordleboard/api/config"
+	"github.com/amanzanero/wordleboard/api/mongo"
+	"github.com/amanzanero/wordleboard/api/users"
+	"github.com/amanzanero/wordleboard/api/wordle"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"net/http"
@@ -19,8 +19,8 @@ import (
 	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/amanzanero/wordleboard/graph"
-	"github.com/amanzanero/wordleboard/graph/generated"
+	"github.com/amanzanero/wordleboard/api/graph"
+	"github.com/amanzanero/wordleboard/api/graph/generated"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -82,8 +82,6 @@ func main() {
 		r.Get("/api/token/{uid}", userService.AccessToken(config.FirebaseEndpoint))
 		r.Get("/api/customToken/{uid}", userService.CustomToken())
 		r.Handle("/graphiql", playground.Handler("GraphQL playground", "/graphql"))
-	} else {
-		r.Handle("/*", http.FileServer(http.Dir("./client/dist")))
 	}
 
 	httpServer := &http.Server{

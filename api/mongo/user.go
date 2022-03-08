@@ -3,7 +3,7 @@ package mongo
 import (
 	"context"
 	"errors"
-	"github.com/amanzanero/wordleboard/models"
+	"github.com/amanzanero/wordleboard/api/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )

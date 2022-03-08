@@ -1,8 +1,8 @@
 package graph
 
 import (
-	"github.com/amanzanero/wordleboard/users"
-	"github.com/amanzanero/wordleboard/wordle"
+	"github.com/amanzanero/wordleboard/api/users"
+	"github.com/amanzanero/wordleboard/api/wordle"
 	"github.com/sirupsen/logrus"
 )
 

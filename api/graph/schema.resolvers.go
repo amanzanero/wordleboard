@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/amanzanero/wordleboard/graph/generated"
-	"github.com/amanzanero/wordleboard/models"
-	"github.com/amanzanero/wordleboard/users"
+	"github.com/amanzanero/wordleboard/api/graph/generated"
+	"github.com/amanzanero/wordleboard/api/models"
+	"github.com/amanzanero/wordleboard/api/users"
 )
 
 func (r *gameBoardResolver) User(ctx context.Context, obj *models.GameBoard) (*models.User, error) {

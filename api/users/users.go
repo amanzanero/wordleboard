@@ -4,7 +4,7 @@ import (
 	"context"
 	"firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
-	"github.com/amanzanero/wordleboard/models"
+	"github.com/amanzanero/wordleboard/api/models"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/option"
 )

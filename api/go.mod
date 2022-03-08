@@ -1,4 +1,4 @@
-module github.com/amanzanero/wordleboard
+module github.com/amanzanero/wordleboard/api
 
 go 1.16
 

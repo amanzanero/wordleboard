@@ -15,7 +15,7 @@ resolver:
   package: graph
 
 autobind:
-  - "github.com/amanzanero/wordleboard/models"
+  - "github.com/amanzanero/wordleboard/api/models"
 
 models:
   ID:
