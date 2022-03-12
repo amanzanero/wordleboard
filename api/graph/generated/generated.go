@@ -78,12 +78,7 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		CreateLeaderboard func(childComplexity int, input string) int
-		CreateUser        func(childComplexity int, input models.NewUser) int
 		Guess             func(childComplexity int, input string) int
-	}
-
-	NewUserError struct {
-		Error func(childComplexity int) int
 	}
 
 	Query struct {
@@ -118,7 +113,6 @@ type LeaderboardResolver interface {
 type MutationResolver interface {
 	Guess(ctx context.Context, input string) (models.GuessResult, error)
 	CreateLeaderboard(ctx context.Context, input string) (*models.Leaderboard, error)
-	CreateUser(ctx context.Context, input models.NewUser) (models.NewUserResult, error)
 }
 type QueryResolver interface {
 	Day(ctx context.Context, input int) (*models.GameBoard, error)
@@ -252,18 +246,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateLeaderboard(childComplexity, args["input"].(string)), true
 
-	case "Mutation.createUser":
-		if e.complexity.Mutation.CreateUser == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_createUser_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.CreateUser(childComplexity, args["input"].(models.NewUser)), true
-
 	case "Mutation.guess":
 		if e.complexity.Mutation.Guess == nil {
 			break
@@ -275,13 +257,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.Guess(childComplexity, args["input"].(string)), true
-
-	case "NewUserError.error":
-		if e.complexity.NewUserError.Error == nil {
-			break
-		}
-
-		return e.complexity.NewUserError.Error(childComplexity), true
 
 	case "Query.day":
 		if e.complexity.Query.Day == nil {
@@ -487,7 +462,6 @@ type User {
 
 input NewUser {
   id: ID!
-  token: String!
   displayName: String
 }
 
@@ -495,12 +469,6 @@ enum CreateNewUserError {
   UserAlreadyExists
   InvalidCredentials
 }
-
-type NewUserError {
-  error: CreateNewUserError!
-}
-
-union NewUserResult = User | NewUserError
 
 type UserStat {
   user: User!
@@ -531,7 +499,6 @@ type Query {
 type Mutation {
   guess(input: String!): GuessResult! # guesses only apply to today's board
   createLeaderboard(input: String!): Leaderboard!
-  createUser(input: NewUser!): NewUserResult!
 }
 `, BuiltIn: false},
 }
@@ -548,21 +515,6 @@ func (ec *executionContext) field_Mutation_createLeaderboard_args(ctx context.Co
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_createUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 models.NewUser
-	if tmp, ok := rawArgs["input"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNNewUser2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐNewUser(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -736,7 +688,7 @@ func (ec *executionContext) _GameBoard_user(ctx context.Context, field graphql.C
 	}
 	res := resTmp.(*models.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _GameBoard_guesses(ctx context.Context, field graphql.CollectedField, obj *models.GameBoard) (ret graphql.Marshaler) {
@@ -771,7 +723,7 @@ func (ec *executionContext) _GameBoard_guesses(ctx context.Context, field graphq
 	}
 	res := resTmp.([][]models.GuessState)
 	fc.Result = res
-	return ec.marshalNGuessState2ᚕᚕgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessStateᚄ(ctx, field.Selections, res)
+	return ec.marshalNGuessState2ᚕᚕgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐGuessStateᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _GameBoard_state(ctx context.Context, field graphql.CollectedField, obj *models.GameBoard) (ret graphql.Marshaler) {
@@ -806,7 +758,7 @@ func (ec *executionContext) _GameBoard_state(ctx context.Context, field graphql.
 	}
 	res := resTmp.(models.GameState)
 	fc.Result = res
-	return ec.marshalNGameState2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGameState(ctx, field.Selections, res)
+	return ec.marshalNGameState2githubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐGameState(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _GuessState_letter(ctx context.Context, field graphql.CollectedField, obj *models.GuessState) (ret graphql.Marshaler) {
@@ -876,7 +828,7 @@ func (ec *executionContext) _GuessState_guess(ctx context.Context, field graphql
 	}
 	res := resTmp.(models.LetterGuess)
 	fc.Result = res
-	return ec.marshalNLetterGuess2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐLetterGuess(ctx, field.Selections, res)
+	return ec.marshalNLetterGuess2githubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐLetterGuess(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _InvalidGuess_error(ctx context.Context, field graphql.CollectedField, obj *models.InvalidGuess) (ret graphql.Marshaler) {
@@ -911,7 +863,7 @@ func (ec *executionContext) _InvalidGuess_error(ctx context.Context, field graph
 	}
 	res := resTmp.(models.GuessError)
 	fc.Result = res
-	return ec.marshalNGuessError2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessError(ctx, field.Selections, res)
+	return ec.marshalNGuessError2githubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐGuessError(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Leaderboard_id(ctx context.Context, field graphql.CollectedField, obj *models.Leaderboard) (ret graphql.Marshaler) {
@@ -1016,7 +968,7 @@ func (ec *executionContext) _Leaderboard_members(ctx context.Context, field grap
 	}
 	res := resTmp.([]*models.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐUserᚄ(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐUserᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Leaderboard_stats(ctx context.Context, field graphql.CollectedField, obj *models.Leaderboard) (ret graphql.Marshaler) {
@@ -1051,7 +1003,7 @@ func (ec *executionContext) _Leaderboard_stats(ctx context.Context, field graphq
 	}
 	res := resTmp.([]*models.LeaderboardStat)
 	fc.Result = res
-	return ec.marshalNLeaderboardStat2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐLeaderboardStatᚄ(ctx, field.Selections, res)
+	return ec.marshalNLeaderboardStat2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐLeaderboardStatᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _LeaderboardStat_day(ctx context.Context, field graphql.CollectedField, obj *models.LeaderboardStat) (ret graphql.Marshaler) {
@@ -1121,7 +1073,7 @@ func (ec *executionContext) _LeaderboardStat_stats(ctx context.Context, field gr
 	}
 	res := resTmp.([]*models.UserStat)
 	fc.Result = res
-	return ec.marshalNUserStat2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐUserStatᚄ(ctx, field.Selections, res)
+	return ec.marshalNUserStat2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐUserStatᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_guess(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1163,7 +1115,7 @@ func (ec *executionContext) _Mutation_guess(ctx context.Context, field graphql.C
 	}
 	res := resTmp.(models.GuessResult)
 	fc.Result = res
-	return ec.marshalNGuessResult2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessResult(ctx, field.Selections, res)
+	return ec.marshalNGuessResult2githubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐGuessResult(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createLeaderboard(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1205,84 +1157,7 @@ func (ec *executionContext) _Mutation_createLeaderboard(ctx context.Context, fie
 	}
 	res := resTmp.(*models.Leaderboard)
 	fc.Result = res
-	return ec.marshalNLeaderboard2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐLeaderboard(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_createUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_createUser_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateUser(rctx, args["input"].(models.NewUser))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(models.NewUserResult)
-	fc.Result = res
-	return ec.marshalNNewUserResult2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐNewUserResult(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _NewUserError_error(ctx context.Context, field graphql.CollectedField, obj *models.NewUserError) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "NewUserError",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Error, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*models.CreateNewUserError)
-	fc.Result = res
-	return ec.marshalNCreateNewUserError2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐCreateNewUserError(ctx, field.Selections, res)
+	return ec.marshalNLeaderboard2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐLeaderboard(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_day(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1321,7 +1196,7 @@ func (ec *executionContext) _Query_day(ctx context.Context, field graphql.Collec
 	}
 	res := resTmp.(*models.GameBoard)
 	fc.Result = res
-	return ec.marshalOGameBoard2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGameBoard(ctx, field.Selections, res)
+	return ec.marshalOGameBoard2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐGameBoard(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_todayBoard(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1356,7 +1231,7 @@ func (ec *executionContext) _Query_todayBoard(ctx context.Context, field graphql
 	}
 	res := resTmp.(*models.GameBoard)
 	fc.Result = res
-	return ec.marshalNGameBoard2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGameBoard(ctx, field.Selections, res)
+	return ec.marshalNGameBoard2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐGameBoard(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_me(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1391,7 +1266,7 @@ func (ec *executionContext) _Query_me(ctx context.Context, field graphql.Collect
 	}
 	res := resTmp.(*models.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_leaderboard(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1430,7 +1305,7 @@ func (ec *executionContext) _Query_leaderboard(ctx context.Context, field graphq
 	}
 	res := resTmp.(*models.Leaderboard)
 	fc.Result = res
-	return ec.marshalOLeaderboard2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐLeaderboard(ctx, field.Selections, res)
+	return ec.marshalOLeaderboard2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐLeaderboard(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1606,7 +1481,7 @@ func (ec *executionContext) _User_leaderboards(ctx context.Context, field graphq
 	}
 	res := resTmp.([]*models.Leaderboard)
 	fc.Result = res
-	return ec.marshalNLeaderboard2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐLeaderboardᚄ(ctx, field.Selections, res)
+	return ec.marshalNLeaderboard2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐLeaderboardᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_individualStats(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
@@ -1641,7 +1516,7 @@ func (ec *executionContext) _User_individualStats(ctx context.Context, field gra
 	}
 	res := resTmp.([]*models.UserStat)
 	fc.Result = res
-	return ec.marshalNUserStat2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐUserStatᚄ(ctx, field.Selections, res)
+	return ec.marshalNUserStat2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐUserStatᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _UserStat_user(ctx context.Context, field graphql.CollectedField, obj *models.UserStat) (ret graphql.Marshaler) {
@@ -1676,7 +1551,7 @@ func (ec *executionContext) _UserStat_user(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.(*models.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _UserStat_day(ctx context.Context, field graphql.CollectedField, obj *models.UserStat) (ret graphql.Marshaler) {
@@ -1781,7 +1656,7 @@ func (ec *executionContext) _UserStat_gameState(ctx context.Context, field graph
 	}
 	res := resTmp.(models.GameState)
 	fc.Result = res
-	return ec.marshalNGameState2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGameState(ctx, field.Selections, res)
+	return ec.marshalNGameState2githubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐGameState(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -2923,19 +2798,11 @@ func (ec *executionContext) unmarshalInputNewUser(ctx context.Context, obj inter
 			if err != nil {
 				return it, err
 			}
-		case "token":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("token"))
-			it.Token, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "displayName":
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("displayName"))
-			it.DisplayName, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			it.DisplayName, err = ec.unmarshalOString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -2967,29 +2834,6 @@ func (ec *executionContext) _GuessResult(ctx context.Context, sel ast.SelectionS
 			return graphql.Null
 		}
 		return ec._InvalidGuess(ctx, sel, obj)
-	default:
-		panic(fmt.Errorf("unexpected type %T", obj))
-	}
-}
-
-func (ec *executionContext) _NewUserResult(ctx context.Context, sel ast.SelectionSet, obj models.NewUserResult) graphql.Marshaler {
-	switch obj := (obj).(type) {
-	case nil:
-		return graphql.Null
-	case models.User:
-		return ec._User(ctx, sel, &obj)
-	case *models.User:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._User(ctx, sel, obj)
-	case models.NewUserError:
-		return ec._NewUserError(ctx, sel, &obj)
-	case *models.NewUserError:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._NewUserError(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -3303,47 +3147,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "createUser":
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_createUser(ctx, field)
-			}
-
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, innerFunc)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var newUserErrorImplementors = []string{"NewUserError", "NewUserResult"}
-
-func (ec *executionContext) _NewUserError(ctx context.Context, sel ast.SelectionSet, obj *models.NewUserError) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, newUserErrorImplementors)
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("NewUserError")
-		case "error":
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._NewUserError_error(ctx, field, obj)
-			}
-
-			out.Values[i] = innerFunc(ctx)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3485,7 +3288,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 	return out
 }
 
-var userImplementors = []string{"User", "NewUserResult"}
+var userImplementors = []string{"User"}
 
 func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *models.User) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, userImplementors)
@@ -4061,27 +3864,11 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) unmarshalNCreateNewUserError2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐCreateNewUserError(ctx context.Context, v interface{}) (*models.CreateNewUserError, error) {
-	var res = new(models.CreateNewUserError)
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNCreateNewUserError2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐCreateNewUserError(ctx context.Context, sel ast.SelectionSet, v *models.CreateNewUserError) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return v
-}
-
-func (ec *executionContext) marshalNGameBoard2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGameBoard(ctx context.Context, sel ast.SelectionSet, v models.GameBoard) graphql.Marshaler {
+func (ec *executionContext) marshalNGameBoard2githubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐGameBoard(ctx context.Context, sel ast.SelectionSet, v models.GameBoard) graphql.Marshaler {
 	return ec._GameBoard(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNGameBoard2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGameBoard(ctx context.Context, sel ast.SelectionSet, v *models.GameBoard) graphql.Marshaler {
+func (ec *executionContext) marshalNGameBoard2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐGameBoard(ctx context.Context, sel ast.SelectionSet, v *models.GameBoard) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -4091,27 +3878,27 @@ func (ec *executionContext) marshalNGameBoard2ᚖgithubᚗcomᚋamanzaneroᚋwor
 	return ec._GameBoard(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNGameState2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGameState(ctx context.Context, v interface{}) (models.GameState, error) {
+func (ec *executionContext) unmarshalNGameState2githubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐGameState(ctx context.Context, v interface{}) (models.GameState, error) {
 	var res models.GameState
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNGameState2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGameState(ctx context.Context, sel ast.SelectionSet, v models.GameState) graphql.Marshaler {
+func (ec *executionContext) marshalNGameState2githubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐGameState(ctx context.Context, sel ast.SelectionSet, v models.GameState) graphql.Marshaler {
 	return v
 }
 
-func (ec *executionContext) unmarshalNGuessError2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessError(ctx context.Context, v interface{}) (models.GuessError, error) {
+func (ec *executionContext) unmarshalNGuessError2githubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐGuessError(ctx context.Context, v interface{}) (models.GuessError, error) {
 	var res models.GuessError
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNGuessError2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessError(ctx context.Context, sel ast.SelectionSet, v models.GuessError) graphql.Marshaler {
+func (ec *executionContext) marshalNGuessError2githubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐGuessError(ctx context.Context, sel ast.SelectionSet, v models.GuessError) graphql.Marshaler {
 	return v
 }
 
-func (ec *executionContext) marshalNGuessResult2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessResult(ctx context.Context, sel ast.SelectionSet, v models.GuessResult) graphql.Marshaler {
+func (ec *executionContext) marshalNGuessResult2githubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐGuessResult(ctx context.Context, sel ast.SelectionSet, v models.GuessResult) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -4121,11 +3908,11 @@ func (ec *executionContext) marshalNGuessResult2githubᚗcomᚋamanzaneroᚋword
 	return ec._GuessResult(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNGuessState2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessState(ctx context.Context, sel ast.SelectionSet, v models.GuessState) graphql.Marshaler {
+func (ec *executionContext) marshalNGuessState2githubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐGuessState(ctx context.Context, sel ast.SelectionSet, v models.GuessState) graphql.Marshaler {
 	return ec._GuessState(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNGuessState2ᚕgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessStateᚄ(ctx context.Context, sel ast.SelectionSet, v []models.GuessState) graphql.Marshaler {
+func (ec *executionContext) marshalNGuessState2ᚕgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐGuessStateᚄ(ctx context.Context, sel ast.SelectionSet, v []models.GuessState) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4149,7 +3936,7 @@ func (ec *executionContext) marshalNGuessState2ᚕgithubᚗcomᚋamanzaneroᚋwo
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNGuessState2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessState(ctx, sel, v[i])
+			ret[i] = ec.marshalNGuessState2githubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐGuessState(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4169,7 +3956,7 @@ func (ec *executionContext) marshalNGuessState2ᚕgithubᚗcomᚋamanzaneroᚋwo
 	return ret
 }
 
-func (ec *executionContext) marshalNGuessState2ᚕᚕgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessStateᚄ(ctx context.Context, sel ast.SelectionSet, v [][]models.GuessState) graphql.Marshaler {
+func (ec *executionContext) marshalNGuessState2ᚕᚕgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐGuessStateᚄ(ctx context.Context, sel ast.SelectionSet, v [][]models.GuessState) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4193,7 +3980,7 @@ func (ec *executionContext) marshalNGuessState2ᚕᚕgithubᚗcomᚋamanzanero�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNGuessState2ᚕgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGuessStateᚄ(ctx, sel, v[i])
+			ret[i] = ec.marshalNGuessState2ᚕgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐGuessStateᚄ(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4243,11 +4030,11 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
-func (ec *executionContext) marshalNLeaderboard2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐLeaderboard(ctx context.Context, sel ast.SelectionSet, v models.Leaderboard) graphql.Marshaler {
+func (ec *executionContext) marshalNLeaderboard2githubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐLeaderboard(ctx context.Context, sel ast.SelectionSet, v models.Leaderboard) graphql.Marshaler {
 	return ec._Leaderboard(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNLeaderboard2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐLeaderboardᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.Leaderboard) graphql.Marshaler {
+func (ec *executionContext) marshalNLeaderboard2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐLeaderboardᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.Leaderboard) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4271,7 +4058,7 @@ func (ec *executionContext) marshalNLeaderboard2ᚕᚖgithubᚗcomᚋamanzanero�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNLeaderboard2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐLeaderboard(ctx, sel, v[i])
+			ret[i] = ec.marshalNLeaderboard2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐLeaderboard(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4291,7 +4078,7 @@ func (ec *executionContext) marshalNLeaderboard2ᚕᚖgithubᚗcomᚋamanzanero�
 	return ret
 }
 
-func (ec *executionContext) marshalNLeaderboard2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐLeaderboard(ctx context.Context, sel ast.SelectionSet, v *models.Leaderboard) graphql.Marshaler {
+func (ec *executionContext) marshalNLeaderboard2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐLeaderboard(ctx context.Context, sel ast.SelectionSet, v *models.Leaderboard) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -4301,7 +4088,7 @@ func (ec *executionContext) marshalNLeaderboard2ᚖgithubᚗcomᚋamanzaneroᚋw
 	return ec._Leaderboard(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNLeaderboardStat2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐLeaderboardStatᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.LeaderboardStat) graphql.Marshaler {
+func (ec *executionContext) marshalNLeaderboardStat2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐLeaderboardStatᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.LeaderboardStat) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4325,7 +4112,7 @@ func (ec *executionContext) marshalNLeaderboardStat2ᚕᚖgithubᚗcomᚋamanzan
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNLeaderboardStat2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐLeaderboardStat(ctx, sel, v[i])
+			ret[i] = ec.marshalNLeaderboardStat2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐLeaderboardStat(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4345,7 +4132,7 @@ func (ec *executionContext) marshalNLeaderboardStat2ᚕᚖgithubᚗcomᚋamanzan
 	return ret
 }
 
-func (ec *executionContext) marshalNLeaderboardStat2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐLeaderboardStat(ctx context.Context, sel ast.SelectionSet, v *models.LeaderboardStat) graphql.Marshaler {
+func (ec *executionContext) marshalNLeaderboardStat2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐLeaderboardStat(ctx context.Context, sel ast.SelectionSet, v *models.LeaderboardStat) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -4355,29 +4142,14 @@ func (ec *executionContext) marshalNLeaderboardStat2ᚖgithubᚗcomᚋamanzanero
 	return ec._LeaderboardStat(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNLetterGuess2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐLetterGuess(ctx context.Context, v interface{}) (models.LetterGuess, error) {
+func (ec *executionContext) unmarshalNLetterGuess2githubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐLetterGuess(ctx context.Context, v interface{}) (models.LetterGuess, error) {
 	var res models.LetterGuess
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNLetterGuess2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐLetterGuess(ctx context.Context, sel ast.SelectionSet, v models.LetterGuess) graphql.Marshaler {
+func (ec *executionContext) marshalNLetterGuess2githubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐLetterGuess(ctx context.Context, sel ast.SelectionSet, v models.LetterGuess) graphql.Marshaler {
 	return v
-}
-
-func (ec *executionContext) unmarshalNNewUser2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐNewUser(ctx context.Context, v interface{}) (models.NewUser, error) {
-	res, err := ec.unmarshalInputNewUser(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNNewUserResult2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐNewUserResult(ctx context.Context, sel ast.SelectionSet, v models.NewUserResult) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._NewUserResult(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
@@ -4395,11 +4167,11 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) marshalNUser2githubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐUser(ctx context.Context, sel ast.SelectionSet, v models.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2githubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐUser(ctx context.Context, sel ast.SelectionSet, v models.User) graphql.Marshaler {
 	return ec._User(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.User) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4423,7 +4195,7 @@ func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordl
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNUser2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐUser(ctx, sel, v[i])
+			ret[i] = ec.marshalNUser2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐUser(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4443,7 +4215,7 @@ func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordl
 	return ret
 }
 
-func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐUser(ctx context.Context, sel ast.SelectionSet, v *models.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐUser(ctx context.Context, sel ast.SelectionSet, v *models.User) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -4453,7 +4225,7 @@ func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋamanzaneroᚋwordlebo
 	return ec._User(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNUserStat2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐUserStatᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.UserStat) graphql.Marshaler {
+func (ec *executionContext) marshalNUserStat2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐUserStatᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.UserStat) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4477,7 +4249,7 @@ func (ec *executionContext) marshalNUserStat2ᚕᚖgithubᚗcomᚋamanzaneroᚋw
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNUserStat2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐUserStat(ctx, sel, v[i])
+			ret[i] = ec.marshalNUserStat2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐUserStat(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4497,7 +4269,7 @@ func (ec *executionContext) marshalNUserStat2ᚕᚖgithubᚗcomᚋamanzaneroᚋw
 	return ret
 }
 
-func (ec *executionContext) marshalNUserStat2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐUserStat(ctx context.Context, sel ast.SelectionSet, v *models.UserStat) graphql.Marshaler {
+func (ec *executionContext) marshalNUserStat2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐUserStat(ctx context.Context, sel ast.SelectionSet, v *models.UserStat) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -4786,14 +4558,14 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
-func (ec *executionContext) marshalOGameBoard2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐGameBoard(ctx context.Context, sel ast.SelectionSet, v *models.GameBoard) graphql.Marshaler {
+func (ec *executionContext) marshalOGameBoard2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐGameBoard(ctx context.Context, sel ast.SelectionSet, v *models.GameBoard) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._GameBoard(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOLeaderboard2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋmodelsᚐLeaderboard(ctx context.Context, sel ast.SelectionSet, v *models.Leaderboard) graphql.Marshaler {
+func (ec *executionContext) marshalOLeaderboard2ᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐLeaderboard(ctx context.Context, sel ast.SelectionSet, v *models.Leaderboard) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}

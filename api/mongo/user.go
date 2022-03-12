@@ -9,7 +9,7 @@ import (
 )
 
 type persistedUser struct {
-	ID          string `bson:"_id"`
+	ID          string `bson:"_id,omitempty"`
 	DisplayName string `bson:"display_name"`
 	OauthUuid   string `bson:"oauth_uuid"`
 }
@@ -60,7 +60,15 @@ func (s *Service) FindUserByUuid(ctx context.Context, oauthUuid string) (*models
 	}, nil
 }
 
-func (s *Service) CreateUser(ctx context.Context, user models.NewUser) (*models.User, error) {
-	//TODO implement me
-	panic("implement me")
+func (s *Service) InsertUser(ctx context.Context, user models.NewUser) error {
+	col := s.database.Collection("users")
+	persist := &persistedUser{
+		DisplayName: user.DisplayName,
+		OauthUuid:   user.ID,
+	}
+	_, err := col.InsertOne(ctx, persist)
+	if err != nil {
+		return err
+	}
+	return nil
 }

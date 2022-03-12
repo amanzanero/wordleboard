@@ -29,7 +29,6 @@ func (s *Service) AuthMiddleware(handler http.Handler) http.HandlerFunc {
 			s.Logger.Warnf("could not find authenticated user with uuid: %s, error: %v", userUuid, lookupErr)
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
-			return
 		}
 
 		ctx := context.WithValue(r.Context(), userCtxKey, user)

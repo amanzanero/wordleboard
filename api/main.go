@@ -74,6 +74,7 @@ func main() {
 	r.Use(middleware.RequestID)
 	r.Use(Logger(logger))
 	r.Handle("/graphql", userService.AuthMiddleware(gqlServer))
+	r.Post("/api/users", userService.CreateUserHandler())
 
 	if *isDev {
 		r.Get("/api/token/{uid}", userService.AccessToken(secretManager.GetSecretString(secrets.FirebaseEndpoint)))

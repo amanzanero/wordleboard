@@ -22,7 +22,7 @@ const GameBoard: React.FC<{
             ))}
           </div>
         ))}
-        {state.guesses.length < 5 && (
+        {state.guesses.length < 6 && (
           <div
             className={classnames(
               "flex h-full w-full gap-x-1",

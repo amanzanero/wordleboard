@@ -44,7 +44,6 @@ type User {
 
 input NewUser {
   id: ID!
-  token: String!
   displayName: String
 }
 
@@ -52,12 +51,6 @@ enum CreateNewUserError {
   UserAlreadyExists
   InvalidCredentials
 }
-
-type NewUserError {
-  error: CreateNewUserError!
-}
-
-union NewUserResult = User | NewUserError
 
 type UserStat {
   user: User!
@@ -88,5 +81,4 @@ type Query {
 type Mutation {
   guess(input: String!): GuessResult! # guesses only apply to today's board
   createLeaderboard(input: String!): Leaderboard!
-  createUser(input: NewUser!): NewUserResult!
 }

@@ -39,10 +39,6 @@ func (r *mutationResolver) CreateLeaderboard(ctx context.Context, input string) 
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) CreateUser(ctx context.Context, input models.NewUser) (models.NewUserResult, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
 func (r *queryResolver) Day(ctx context.Context, input int) (*models.GameBoard, error) {
 	cancelCtx, cancel := context.WithTimeout(ctx, time.Second*30)
 	defer cancel()

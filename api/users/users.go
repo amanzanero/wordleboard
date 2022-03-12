@@ -44,8 +44,3 @@ func (s *Service) GetUserById(ctx context.Context, id string) (*models.User, err
 func (s *Service) GetUserByOauthUuid(ctx context.Context, id string) (*models.User, error) {
 	return s.Repo.FindUserByUuid(ctx, id)
 }
-
-func (s *Service) CreateNewUser(ctx context.Context, user models.NewUser) (models.NewUserResult, error) {
-	// auth shit here
-	return nil, nil
-}

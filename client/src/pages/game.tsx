@@ -30,9 +30,8 @@ const Game: NextPage = () => {
   const guessMutation = useGuessMutation({
     onSuccess: (d) => {
       if ((d as InvalidGuess).error === undefined) {
-        console.log("here");
         setCurrentGuess([]);
-        queryClient.setQueryData(["todayBoard", `user-${user?.uid}`], data);
+        queryClient.setQueryData(["todayBoard", `user-${user?.uid}`], d);
         // do flip animation
       } else {
         // do shake animation

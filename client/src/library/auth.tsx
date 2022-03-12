@@ -73,6 +73,11 @@ export const useFirebaseAuth = () => {
       try {
         const result = await retrieveOAuthResult();
         if (result) {
+          // send create request
+          await axios.post("/api/users", {
+            oauth_id: result.user.uid,
+            display_name: result.user.displayName,
+          });
           setUser(result.user);
         }
       } catch (e) {
