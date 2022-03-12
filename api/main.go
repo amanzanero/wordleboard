@@ -2,12 +2,11 @@ package main
 
 import (
 	"context"
-	"encoding/base64"
 	"flag"
 	"fmt"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/amanzanero/wordleboard/api/config"
 	"github.com/amanzanero/wordleboard/api/mongo"
+	"github.com/amanzanero/wordleboard/api/secrets"
 	"github.com/amanzanero/wordleboard/api/users"
 	"github.com/amanzanero/wordleboard/api/wordle"
 	"github.com/go-chi/chi/v5"
@@ -46,21 +45,19 @@ func main() {
 		ReportCaller: false,
 	}
 
-	mongoService, err := mongo.NewMongoService(config.MongoUri)
+	secretManager := secrets.NewManager(*isDev, logger)
+	secretManager.Initialize()
+
+	mongoService, err := mongo.NewMongoService(secretManager.GetSecretString(secrets.MongoUri))
 	if err != nil {
-		panic(err)
+		logger.Fatalf("failed to create mongodb service: %v", err)
 	} else {
 		logger.Info("connected to mongo")
 	}
 
-	// decode firebase credentials
-	credentialsBytes, credentialsErr := base64.StdEncoding.DecodeString(config.FirebaseCredentials)
-	if err != nil {
-		logger.Fatalf("firebase credentials error: %v", credentialsErr)
-	}
-	authClient, authClientErr := users.NewAuthClient(context.Background(), credentialsBytes)
+	authClient, authClientErr := users.NewAuthClient(context.Background(), secretManager)
 	if authClientErr != nil {
-		logger.Fatalf("failed to initialized auth.Client: %v", authClientErr)
+		logger.Fatalf("failed to initialize auth.Client: %v", authClientErr)
 	}
 	userService := users.Service{Client: authClient, Repo: mongoService, Logger: logger}
 	resolver := &graph.Resolver{
@@ -79,13 +76,13 @@ func main() {
 	r.Handle("/graphql", userService.AuthMiddleware(gqlServer))
 
 	if *isDev {
-		r.Get("/api/token/{uid}", userService.AccessToken(config.FirebaseEndpoint))
+		r.Get("/api/token/{uid}", userService.AccessToken(secretManager.GetSecretString(secrets.FirebaseEndpoint)))
 		r.Get("/api/customToken/{uid}", userService.CustomToken())
 		r.Handle("/graphiql", playground.Handler("GraphQL playground", "/graphql"))
 	}
 
 	httpServer := &http.Server{
-		Addr:    fmt.Sprintf(":%s", config.Port),
+		Addr:    fmt.Sprintf(":%s", secretManager.GetSecretString(secrets.Port)),
 		Handler: r,
 	}
 	httpServer.RegisterOnShutdown(func() {
@@ -107,7 +104,7 @@ func main() {
 			return
 		}
 	}()
-	logger.Infof("running on port %s", config.Port)
+	logger.Infof("running on port %s", secretManager.GetSecretString(secrets.Port))
 
 	interrupted := make(chan os.Signal)
 	signal.Notify(interrupted, syscall.SIGTERM, os.Interrupt)
