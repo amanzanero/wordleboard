@@ -30,7 +30,7 @@ const Game: NextPage = () => {
 
   // fetch board when we are sure we have a user otherwise redirect
   useEffect(() => {
-    if (!userLoading && !!user) {
+    if (!userLoading) {
       user ? refetch() : router.push("/");
       refetch();
     }
