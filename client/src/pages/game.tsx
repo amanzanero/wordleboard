@@ -3,11 +3,11 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import GameBoard, { CurrentGuessState } from "components/GameBoard";
 import { useGuessMutation, useTodayGameBoard } from "query/guess";
 import {
+  GameBoard as GameBoardType,
   GameState,
   GuessError,
   InvalidGuess,
   LetterGuess,
-  GameBoard as GameBoardType,
 } from "codegen";
 import LoadingSpinner from "components/LoadingSpinner";
 import Keyboard, { KeyboardState } from "components/Keyboard";
@@ -17,6 +17,8 @@ import { useQueryClient } from "react-query";
 import toast, { Toaster } from "react-hot-toast";
 import DrawerLayout from "components/DrawerLayout";
 import { doEvery } from "utils/time";
+import Head from "next/head";
+import MetaTags from "../components/MetaTags";
 
 const Game: NextPage = () => {
   const { user, loading: userLoading } = useFirebaseUser();
@@ -146,27 +148,33 @@ const Game: NextPage = () => {
   }, [data?.guesses]);
 
   return (
-    <DrawerLayout>
-      <div className="max-w-lg w-full flex flex-col flex-grow pb-2 px-1">
-        <Toaster />
-        {!!data ? (
-          <GameBoard state={data} currentWord={guess} shouldShake={wrongGuess} />
-        ) : (
-          <div className="flex-grow flex items-center">
-            <LoadingSpinner />
-          </div>
-        )}
+    <>
+      <Head>
+        <title>WordleBoard - Play</title>
+        <MetaTags />
+      </Head>
+      <DrawerLayout>
+        <div className="max-w-lg w-full flex flex-col flex-grow pb-2 px-1">
+          <Toaster />
+          {!!data ? (
+            <GameBoard state={data} currentWord={guess} shouldShake={wrongGuess} />
+          ) : (
+            <div className="flex-grow flex items-center">
+              <LoadingSpinner />
+            </div>
+          )}
 
-        <Keyboard
-          onLetterPress={onLetterPress}
-          onGuess={onGuess}
-          onBackspace={onBackspace}
-          correctSet={keyboardState.correctSet}
-          inWordSet={keyboardState.inWordSet}
-          incorrectSet={keyboardState.incorrectSet}
-        />
-      </div>
-    </DrawerLayout>
+          <Keyboard
+            onLetterPress={onLetterPress}
+            onGuess={onGuess}
+            onBackspace={onBackspace}
+            correctSet={keyboardState.correctSet}
+            inWordSet={keyboardState.inWordSet}
+            incorrectSet={keyboardState.incorrectSet}
+          />
+        </div>
+      </DrawerLayout>
+    </>
   );
 };
 
