@@ -1,19 +1,26 @@
 import type { NextPage } from "next";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import GameBoard from "components/GameBoard";
+import GameBoard, { CurrentGuessState } from "components/GameBoard";
 import { useGuessMutation, useTodayGameBoard } from "query/guess";
-import { GameState, GuessError, InvalidGuess, LetterGuess } from "codegen";
+import {
+  GameState,
+  GuessError,
+  InvalidGuess,
+  LetterGuess,
+  GameBoard as GameBoardType,
+} from "codegen";
 import LoadingSpinner from "components/LoadingSpinner";
 import Keyboard, { KeyboardState } from "components/Keyboard";
-import BaseLayout from "components/BaseLayout";
 import { useFirebaseUser } from "library/auth";
 import { useRouter } from "next/router";
 import { useQueryClient } from "react-query";
 import toast, { Toaster } from "react-hot-toast";
+import DrawerLayout from "components/DrawerLayout";
+import { doEvery } from "utils/time";
 
 const Game: NextPage = () => {
   const { user, loading: userLoading } = useFirebaseUser();
-  const [guess, setCurrentGuess] = useState<string[]>([]);
+  const [guess, setCurrentGuess] = useState<CurrentGuessState>([]);
   const router = useRouter();
   const [wrongGuess, setWrongGuess] = useState(false);
   const queryClient = useQueryClient();
@@ -30,14 +37,35 @@ const Game: NextPage = () => {
   }, [refetch, router, user, userLoading]);
 
   const guessMutation = useGuessMutation({
-    onSuccess: (d) => {
-      if ((d as InvalidGuess).error === undefined) {
-        setCurrentGuess([]);
-        queryClient.setQueryData(["todayBoard", `user-${user?.uid}`], d);
-        // do flip animation
+    onSuccess: (result) => {
+      if ((result as InvalidGuess).error === undefined) {
+        const serverGuesses = [...(result as GameBoardType).guesses];
+        const lastGuess = serverGuesses.pop();
+        if (lastGuess === undefined) {
+          console.error("should have a valid guess");
+          return;
+        }
+
+        const actions: (() => void)[] = [];
+        for (let i = 0; i < 6; i++) {
+          actions.push(() => {
+            const nextGuessState: CurrentGuessState = [];
+            lastGuess.slice(0, i).forEach((value) => {
+              nextGuessState.push({ ...value, letter: value.letter.toUpperCase(), animate: true });
+            });
+            lastGuess.slice(i).forEach((value) => {
+              nextGuessState.push({ ...value, letter: value.letter.toUpperCase(), animate: false });
+            });
+            setCurrentGuess(nextGuessState);
+          });
+        }
+
+        doEvery(400, actions).then(() => {
+          queryClient.setQueryData(["todayBoard", `user-${user?.uid}`], result);
+          setCurrentGuess([]);
+        });
       } else {
-        // do shake animation
-        const err = d as InvalidGuess;
+        const err = result as InvalidGuess;
         setWrongGuess(true);
         setTimeout(() => setWrongGuess(false), 250);
 
@@ -58,7 +86,7 @@ const Game: NextPage = () => {
     (letter: string) => {
       setCurrentGuess((prevState) => {
         if (prevState.length < 5 && data?.state === GameState.InProgress) {
-          return [...prevState, letter];
+          return [...prevState, { letter, animate: false }];
         } else {
           return prevState;
         }
@@ -78,8 +106,15 @@ const Game: NextPage = () => {
   }, []);
 
   const onGuess = () => {
-    if (guess.length === 5) {
-      guessMutation.mutate({ word: guess.join("").toLowerCase() });
+    if (data?.state !== GameState.InProgress) {
+      return;
+    } else if (guess.length === 5) {
+      guessMutation.mutate({
+        word: guess
+          .map((curr) => curr.letter)
+          .join("")
+          .toLowerCase(),
+      });
     } else {
       setWrongGuess(true);
       setTimeout(() => setWrongGuess(false), 250);
@@ -111,7 +146,7 @@ const Game: NextPage = () => {
   }, [data?.guesses]);
 
   return (
-    <BaseLayout>
+    <DrawerLayout>
       <div className="max-w-lg w-full flex flex-col flex-grow pb-2 px-1">
         <Toaster />
         {!!data ? (
@@ -131,7 +166,7 @@ const Game: NextPage = () => {
           incorrectSet={keyboardState.incorrectSet}
         />
       </div>
-    </BaseLayout>
+    </DrawerLayout>
   );
 };
 

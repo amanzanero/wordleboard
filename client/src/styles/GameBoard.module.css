@@ -9,3 +9,15 @@
 .small {
     font-size: 12px;
 }
+
+.cardContainer {
+    transform-style: preserve-3d;
+}
+
+.card {
+    backface-visibility: hidden;
+}
+
+.cardBack {
+    transform: rotateX(180deg);
+}

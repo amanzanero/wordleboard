@@ -13,7 +13,7 @@ const BaseLayout: React.FC = ({ children }) => {
   };
 
   return (
-    <div className="flex flex-col items-center h-full">
+    <div className="flex flex-col items-center h-full dark:bg-darkmode">
       <div
         className={classnames(
           "flex p-2 w-full max-w-screen-lg",

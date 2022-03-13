@@ -5,11 +5,12 @@ module.exports = {
       animation: {
         wiggle: "wiggle 0.25s",
         pop: "pop 0.25s",
-        card: "card 0.5s ease-in-out",
+        card: "card 0.5s ease-in-out forwards",
       },
       colors: {
         fb: "#4267b2",
         absent: "#3a3a3c",
+        darkmode: "#1a1a1b",
       },
       keyframes: {
         card: {
@@ -27,5 +28,5 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [require("daisyui")],
 };

@@ -55,6 +55,16 @@ func main() {
 	} else {
 		logger.Info("connected to mongodb")
 	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+		disconnectErr := mongoService.Disconnect(ctx)
+		if disconnectErr != nil {
+			logger.Error(disconnectErr)
+		} else {
+			logger.Info("disconnected from mongodb")
+		}
+	}()
 
 	authClient, authClientErr := users.NewAuthClient(context.Background(), secretManager)
 	if authClientErr != nil {
@@ -87,26 +97,16 @@ func main() {
 		Addr:    fmt.Sprintf(":%s", secretManager.GetSecretString(secrets.Port)),
 		Handler: r,
 	}
-	httpServer.RegisterOnShutdown(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-		defer cancel()
-		disconnectErr := mongoService.Disconnect(ctx)
-		if disconnectErr != nil {
-			logger.Error(disconnectErr)
-		} else {
-			logger.Info("disconnected from ")
-		}
-	})
 
 	srvClosed := make(chan bool)
 	go func() {
 		err := httpServer.ListenAndServe()
 		if err != http.ErrServerClosed {
 			logger.Errorf("server failed to start: %v", err)
-			return
+			srvClosed <- true
 		}
 	}()
-	logger.Infof("running on port %s", secretManager.GetSecretString(secrets.Port))
+	logger.Infof("http server running on port %s", secretManager.GetSecretString(secrets.Port))
 
 	interrupted := make(chan os.Signal)
 	signal.Notify(interrupted, syscall.SIGTERM, os.Interrupt)
@@ -121,9 +121,9 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := httpServer.Shutdown(ctx); err != nil {
-		logger.Errorf("there was an error while shutting down: %v", err)
+	if err = httpServer.Shutdown(ctx); err != nil {
+		logger.Fatalf("there was an error while shutting down: %v", err)
 	} else {
-		logger.Info("server shut down successfully")
+		logger.Info("http server shutdown successfylly")
 	}
 }

@@ -1,15 +1,27 @@
 import React from "react";
 import { GuessState, LetterGuess, TodayQuery } from "codegen";
-import { classnames } from "../utils/classnames";
+import { classnames } from "utils/classnames";
+import styles from "styles/GameBoard.module.css";
+
+type UserLetterGuess = {
+  letter: string;
+  guess?: LetterGuess;
+  animate: boolean;
+};
+
+export type CurrentGuessState = UserLetterGuess[];
 
 const GameBoard: React.FC<{
   state: TodayQuery["todayBoard"];
-  currentWord: string[];
+  currentWord: CurrentGuessState;
   shouldShake: boolean;
 }> = ({ state, currentWord, shouldShake }) => {
   const remaining: string[][] =
     state.guesses.length < 5 ? Array(5 - state.guesses.length).fill(Array(5).fill("")) : [];
-  const wordArray = [...currentWord, ...Array(5 - currentWord.length).fill("")];
+  const wordArray: CurrentGuessState = [
+    ...currentWord,
+    ...Array(5 - currentWord.length).fill({ letter: "", animate: false }),
+  ];
 
   return (
     <div className="flex-grow w-full flex justify-center items-center overflow-hidden">
@@ -22,14 +34,15 @@ const GameBoard: React.FC<{
             ))}
           </div>
         ))}
+        {/* current guess */}
         {state.guesses.length < 6 && (
           <div
             className={classnames(
               "flex h-full w-full gap-x-1",
               shouldShake ? "animate-wiggle" : "",
             )}>
-            {wordArray.map((letter, i) => (
-              <LetterBox key={`current-${letter}-${i}`} letter={letter} />
+            {wordArray.map((curr, i) => (
+              <LetterBox key={`current-${curr.letter}-${i}`} guess={curr} />
             ))}
           </div>
         )}
@@ -67,18 +80,50 @@ const GuessBox: React.FC<{ guess: GuessState }> = ({ guess }) => {
   );
 };
 
-const LetterBox: React.FC<{ letter: string }> = ({ letter }) => (
-  <div
-    className={classnames(
-      "border-2 text-black dark:text-white uppercase w-full h-full font-extrabold text-3xl flex justify-center items-center",
-      letter === ""
-        ? "border-gray-400 dark:border-gray-600"
-        : "border-gray-500 dark:border-gray-700",
-      letter === "" ? "" : "animate-pop",
-    )}>
-    {letter}
-  </div>
-);
+const LetterBox: React.FC<{ guess: UserLetterGuess }> = ({ guess }) => {
+  const color = () => {
+    switch (guess.guess) {
+      case LetterGuess.Incorrect:
+        return "bg-gray-500 dark:bg-gray-700";
+      case LetterGuess.InLocation:
+        return "bg-green-600";
+      case LetterGuess.InWord:
+        return "bg-yellow-500";
+      default:
+        return "bg-white dark:bg-darkmode";
+    }
+  };
+
+  return (
+    <div
+      className={classnames(
+        "uppercase w-full h-full font-extrabold text-3xl relative transition-transform",
+        guess.letter === "" ? "" : "animate-pop",
+        guess.animate ? "animate-card" : "",
+        styles.cardContainer,
+      )}>
+      <div
+        className={classnames(
+          "h-full w-full absolute flex justify-center items-center text-black dark:text-white",
+          styles.cardBack,
+          styles.card,
+          color(),
+        )}>
+        {guess.letter}
+      </div>
+      <div
+        className={classnames(
+          "h-full w-full absolute flex justify-center items-center bg-white dark:bg-darkmode text-black dark:text-white border-2",
+          guess.letter === ""
+            ? "border-gray-400 dark:border-gray-600"
+            : "border-gray-500 dark:border-gray-700",
+          styles.card,
+        )}>
+        {guess.letter}
+      </div>
+    </div>
+  );
+};
 
 const TransparentLetterBox: React.FC = ({ children }) => (
   <div className="border-2 text-transparent uppercase font-extrabold text-3xl flex justify-center items-center border-gray-400 dark:border-gray-600 w-full h-full">
