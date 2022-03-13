@@ -27,8 +27,20 @@ func NewMongoService(connection string, logger *logrus.Logger) (*Service, error)
 		return nil, err
 	}
 
+	// create indexes
+	db := client.Database("wordleboard")
+
+	_, err = db.Collection("gameboards").Indexes().CreateOne(ctx, gameboardIndex)
+	if err != nil {
+		return nil, err
+	}
+	_, err = db.Collection("users").Indexes().CreateOne(ctx, userIndex)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Service{
-			client.Database("wordleboard"),
+			db,
 			client,
 			logger,
 		},
