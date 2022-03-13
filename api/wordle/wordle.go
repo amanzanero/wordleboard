@@ -100,7 +100,7 @@ func (s *Service) Guess(ctx context.Context, userId, guess string) (models.Guess
 
 	// see if guess is valid
 	if len(guess) != 5 {
-		return models.InvalidGuess{Error: models.GuessErrorNotAWord}, nil
+		return models.InvalidGuess{Error: models.GuessErrorInvalidLength}, nil
 	}
 
 	if _, ok := guesses[guess]; ok {

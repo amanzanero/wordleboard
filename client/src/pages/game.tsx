@@ -2,13 +2,14 @@ import type { NextPage } from "next";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import GameBoard from "components/GameBoard";
 import { useGuessMutation, useTodayGameBoard } from "query/guess";
-import { GameState, InvalidGuess, LetterGuess } from "codegen";
-import Loader from "components/Loader";
+import { GameState, GuessError, InvalidGuess, LetterGuess } from "codegen";
+import LoadingSpinner from "components/LoadingSpinner";
 import Keyboard, { KeyboardState } from "components/Keyboard";
 import BaseLayout from "components/BaseLayout";
 import { useFirebaseUser } from "library/auth";
 import { useRouter } from "next/router";
 import { useQueryClient } from "react-query";
+import toast, { Toaster } from "react-hot-toast";
 
 const Game: NextPage = () => {
   const { user, loading: userLoading } = useFirebaseUser();
@@ -18,6 +19,7 @@ const Game: NextPage = () => {
   const queryClient = useQueryClient();
 
   const { data, refetch } = useTodayGameBoard({ enabled: false, user: user?.uid || "" });
+  const notify = useCallback((text: string) => toast(text), []);
 
   // fetch board when we are sure we have a user otherwise redirect
   useEffect(() => {
@@ -35,8 +37,19 @@ const Game: NextPage = () => {
         // do flip animation
       } else {
         // do shake animation
+        const err = d as InvalidGuess;
         setWrongGuess(true);
         setTimeout(() => setWrongGuess(false), 250);
+
+        // show toast
+        switch (err.error) {
+          case GuessError.InvalidLength:
+            notify("Too short");
+            break;
+          case GuessError.NotAWord:
+            notify("Invalid guess");
+            break;
+        }
       }
     },
   });
@@ -70,6 +83,7 @@ const Game: NextPage = () => {
     } else {
       setWrongGuess(true);
       setTimeout(() => setWrongGuess(false), 250);
+      notify("Too short");
     }
   };
 
@@ -99,11 +113,12 @@ const Game: NextPage = () => {
   return (
     <BaseLayout>
       <div className="max-w-lg w-full flex flex-col flex-grow pb-2 px-1">
+        <Toaster />
         {!!data ? (
           <GameBoard state={data} currentWord={guess} shouldShake={wrongGuess} />
         ) : (
           <div className="flex-grow flex items-center">
-            <Loader />
+            <LoadingSpinner />
           </div>
         )}
 
