@@ -61,8 +61,8 @@ const Game: NextPage = () => {
         }
 
         doEvery(400, actions).then(() => {
-          queryClient.setQueryData(["todayBoard", `user-${user?.uid}`], result);
           setCurrentGuess([]);
+          queryClient.setQueryData(["todayBoard", `user-${user?.uid}`], result);
         });
       } else {
         const err = result as InvalidGuess;

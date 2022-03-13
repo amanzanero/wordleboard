@@ -104,7 +104,7 @@ const LetterBox: React.FC<{ guess: UserLetterGuess }> = ({ guess }) => {
       )}>
       <div
         className={classnames(
-          "h-full w-full absolute flex justify-center items-center text-black dark:text-white",
+          "h-full w-full absolute flex justify-center items-center text-white",
           styles.cardBack,
           styles.card,
           color(),
