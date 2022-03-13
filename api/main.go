@@ -48,11 +48,12 @@ func main() {
 	secretManager := secrets.NewManager(*isDev, logger)
 	secretManager.Initialize()
 
-	mongoService, err := mongo.NewMongoService(secretManager.GetSecretString(secrets.MongoUri))
+	logger.Info("connecting to mongodb...")
+	mongoService, err := mongo.NewMongoService(secretManager.GetSecretString(secrets.MongoUri), logger)
 	if err != nil {
 		logger.Fatalf("failed to create mongodb service: %v", err)
 	} else {
-		logger.Info("connected to mongo")
+		logger.Info("connected to mongodb")
 	}
 
 	authClient, authClientErr := users.NewAuthClient(context.Background(), secretManager)
@@ -72,7 +73,7 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
-	r.Use(Logger(logger))
+	r.Use(HttpLoggingMiddleware(logger, *isDev))
 	r.Handle("/graphql", userService.AuthMiddleware(gqlServer))
 	r.Post("/api/users", userService.CreateUserHandler())
 
@@ -93,7 +94,7 @@ func main() {
 		if disconnectErr != nil {
 			logger.Error(disconnectErr)
 		} else {
-			logger.Info("mongo disconnected")
+			logger.Info("disconnected from ")
 		}
 	})
 

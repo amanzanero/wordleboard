@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/sirupsen/logrus"
 	"net"
@@ -8,8 +9,8 @@ import (
 	"time"
 )
 
-// Logger returns a request logging middleware
-func Logger(logger logrus.FieldLogger) func(h http.Handler) http.Handler {
+// HttpLoggingMiddleware returns a request logging middleware
+func HttpLoggingMiddleware(logger logrus.FieldLogger, isDev bool) func(h http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			reqID := middleware.GetReqID(r.Context())
@@ -20,28 +21,38 @@ func Logger(logger logrus.FieldLogger) func(h http.Handler) http.Handler {
 				if err != nil {
 					remoteIP = r.RemoteAddr
 				}
-				scheme := "http"
-				if r.TLS != nil {
-					scheme = "https"
-				}
 				category := "static"
 				if r.RequestURI == "/graphql" {
 					category = "graphql"
 				}
 				fields := logrus.Fields{
-					"status_code":      ww.Status(),
-					"bytes":            ww.BytesWritten(),
-					"duration":         int64(time.Since(t1)),
-					"duration_display": time.Since(t1).String(),
-					"category":         category,
-					"remote_ip":        remoteIP,
-					"proto":            r.Proto,
-					"method":           r.Method,
+					"status":        ww.Status(),
+					"userAgent":     r.UserAgent(),
+					"responseSize":  ww.BytesWritten(),
+					"latency":       fmt.Sprintf("%.6fs", time.Since(t1).Seconds()),
+					"remoteIp":      remoteIP,
+					"protocol":      r.Proto,
+					"requestMethod": r.Method,
+					"requestUrl":    r.RequestURI,
+					"referer":       r.Referer(),
 				}
+
+				outerField := logrus.Fields{
+					"category": category,
+				}
+				var entry *logrus.Entry
+				if isDev {
+					entry = logger.WithFields(outerField).WithFields(fields)
+				} else {
+					outerField["httpRequest"] = fields
+					entry = logger.WithFields(outerField)
+				}
+
 				if len(reqID) > 0 {
-					fields["request_id"] = reqID
+					outerField["request_id"] = reqID
 				}
-				logger.WithFields(fields).Infof("%s://%s%s", scheme, r.Host, r.RequestURI)
+
+				entry.Infof("served %s", r.RequestURI)
 			}()
 
 			h.ServeHTTP(ww, r)

@@ -30,12 +30,14 @@ func (s *Service) FindGameBoardByUserAndDay(ctx context.Context, userId string, 
 		if errors.Is(doc.Err(), mongo.ErrNoDocuments) {
 			return nil, models.ErrNotFound
 		}
+		s.logger.Errorf("error in FindGameBoardByUserAndDay: %v", doc.Err())
 		return nil, models.ErrRepoFailed
 	}
 
 	board := new(persistedGameBoard)
 	err := doc.Decode(board)
 	if err != nil {
+		s.logger.Errorf("error in FindGameBoardByUserAndDay: %v", doc.Err())
 		return nil, models.ErrRepoFailed
 	}
 
@@ -86,6 +88,7 @@ func (s *Service) InsertGameBoard(ctx context.Context, gameBoard models.GameBoar
 	collection := s.database.Collection("gameboards")
 	_, err := collection.InsertOne(ctx, persist)
 	if err != nil {
+		s.logger.Errorf("error in InsertGameBoard: %v", err)
 		return err
 	}
 	return nil
@@ -97,6 +100,7 @@ func (s *Service) UpdateGameBoardById(ctx context.Context, id string, gameBoard 
 	collection := s.database.Collection("gameboards")
 	result, err := collection.ReplaceOne(ctx, bson.M{"_id": gameBoardOid}, persist)
 	if err != nil {
+		s.logger.Errorf("error in UpdateGameBoardById: %v", err)
 		return err
 	} else if result.MatchedCount == 0 {
 		return models.ErrNotFound

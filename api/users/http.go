@@ -30,7 +30,7 @@ func (s *Service) CreateUserHandler() http.HandlerFunc {
 			RespondWithJSON(w, 201, map[string]string{"msg": "succeeded"})
 			return
 		} else if errors.Is(findErr, models.ErrRepoFailed) {
-			s.Logger.Errorf("failed to find user: %v", findErr)
+			s.Logger.Errorf("failed to fetch user from repo: %v", findErr)
 			respondWithError(w, 500, findErr.Error())
 			return
 		}
@@ -38,7 +38,7 @@ func (s *Service) CreateUserHandler() http.HandlerFunc {
 		// let's verify the oathId
 		_, fetchUserFromAuthServiceErr := s.Client.GetUser(r.Context(), params.OauthId)
 		if fetchUserFromAuthServiceErr != nil {
-			s.Logger.Infof("failed to find user from firebase: %v", fetchUserFromAuthServiceErr)
+			s.Logger.Infof("failed to find fetch user from firebase: %v", fetchUserFromAuthServiceErr)
 			respondWithError(w, 400, "user does not exist")
 			return
 		}

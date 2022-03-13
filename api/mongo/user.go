@@ -19,14 +19,17 @@ func (s *Service) FindUserById(ctx context.Context, userId string) (*models.User
 	doc := col.FindOne(ctx, bson.M{"_id": userId})
 	if doc.Err() != nil {
 		if errors.Is(doc.Err(), mongo.ErrNoDocuments) {
+			s.logger.Warnf("FindUserById: %v", doc.Err())
 			return nil, models.ErrNotFound
 		}
+		s.logger.Errorf("FindUserById mongodb err: %v", doc.Err())
 		return nil, models.ErrRepoFailed
 	}
 
 	pUser := new(persistedUser)
 	err := doc.Decode(pUser)
 	if err != nil {
+		s.logger.Errorf("FindUserById decode err: %v", err)
 		return nil, models.ErrRepoFailed
 	}
 
@@ -42,14 +45,17 @@ func (s *Service) FindUserByUuid(ctx context.Context, oauthUuid string) (*models
 	doc := col.FindOne(ctx, bson.M{"oauth_uuid": oauthUuid})
 	if doc.Err() != nil {
 		if errors.Is(doc.Err(), mongo.ErrNoDocuments) {
+			s.logger.Warnf("FindUserByUuid: %v", doc.Err())
 			return nil, models.ErrNotFound
 		}
+		s.logger.Errorf("FindUserByUuid: %v", doc.Err())
 		return nil, models.ErrRepoFailed
 	}
 
 	pUser := new(persistedUser)
 	err := doc.Decode(pUser)
 	if err != nil {
+		s.logger.Errorf("FindUserByUuid: %v", err)
 		return nil, models.ErrRepoFailed
 	}
 
@@ -68,6 +74,7 @@ func (s *Service) InsertUser(ctx context.Context, user models.NewUser) error {
 	}
 	_, err := col.InsertOne(ctx, persist)
 	if err != nil {
+		s.logger.Warnf("InsertUser: %v", err)
 		return err
 	}
 	return nil
