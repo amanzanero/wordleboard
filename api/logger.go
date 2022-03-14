@@ -40,6 +40,10 @@ func HttpLoggingMiddleware(logger logrus.FieldLogger, isDev bool) func(h http.Ha
 				outerField := logrus.Fields{
 					"category": category,
 				}
+				if len(reqID) > 0 {
+					outerField["requestId"] = reqID
+				}
+
 				var entry *logrus.Entry
 				if isDev {
 					entry = logger.WithFields(outerField).WithFields(fields)
@@ -47,11 +51,6 @@ func HttpLoggingMiddleware(logger logrus.FieldLogger, isDev bool) func(h http.Ha
 					outerField["httpRequest"] = fields
 					entry = logger.WithFields(outerField)
 				}
-
-				if len(reqID) > 0 {
-					outerField["request_id"] = reqID
-				}
-
 				entry.Infof("served %s", r.RequestURI)
 			}()
 
