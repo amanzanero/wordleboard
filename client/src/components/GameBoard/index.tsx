@@ -1,55 +1,45 @@
 import React from "react";
-import { GuessState, LetterGuess, TodayQuery } from "codegen";
+import { LetterGuess } from "codegen";
 import { classnames } from "utils/classnames";
 import styles from "styles/GameBoard.module.css";
-
-type UserLetterGuess = {
-  letter: string;
-  guess?: LetterGuess;
-  animate: boolean;
-};
-
-export type CurrentGuessState = UserLetterGuess[];
+import { BoardCell, BoardRow, BoardRowType } from "./gameBoardState";
 
 const GameBoard: React.FC<{
-  state: TodayQuery["todayBoard"];
-  currentWord: CurrentGuessState;
+  gameBoardState: BoardRow[];
   shouldShake: boolean;
-}> = ({ state, currentWord, shouldShake }) => {
-  const remaining: string[][] =
-    state.guesses.length < 5 ? Array(5 - state.guesses.length).fill(Array(5).fill("")) : [];
-  const wordArray: CurrentGuessState = [
-    ...currentWord,
-    ...Array(5 - currentWord.length).fill({ letter: "", animate: false }),
-  ];
+}> = ({ gameBoardState, shouldShake }) => {
+  const currentGuessRow = gameBoardState.filter((g) => g.type === BoardRowType.GUESSING)[0];
+  const remainingRows = gameBoardState.filter((g) => g.type === BoardRowType.REMAINING);
 
   return (
     <div className="flex-grow w-full flex justify-center items-center overflow-hidden">
       {/*board*/}
       <div className="h-96 w-80 flex flex-col justify-between gap-y-1">
-        {state.guesses.map((row, i) => (
-          <div key={`guessed-${i}`} className="flex h-full w-full gap-x-1">
-            {row.map((guess, i) => (
-              <GuessBox key={`guess-${i}`} guess={guess} />
-            ))}
-          </div>
-        ))}
+        {gameBoardState
+          .filter((g) => g.type === BoardRowType.GUESSED)
+          .map((row, i) => (
+            <div key={`guessed-${i}`} className="flex h-full w-full gap-x-1">
+              {row.letters.map((cell, i) => (
+                <GuessBox key={`guess-${i}`} cell={cell} />
+              ))}
+            </div>
+          ))}
         {/* current guess */}
-        {state.guesses.length < 6 && (
+        {currentGuessRow && (
           <div
             className={classnames(
               "flex h-full w-full gap-x-1",
               shouldShake ? "animate-wiggle" : "",
             )}>
-            {wordArray.map((curr, i) => (
-              <LetterBox key={`current-${curr.letter}-${i}`} guess={curr} />
+            {currentGuessRow.letters.map((cell, i) => (
+              <LetterBox key={`current-${cell.letter}-${i}`} cell={cell} />
             ))}
           </div>
         )}
-        {remaining.map((row, i) => (
+        {remainingRows.map((row, i) => (
           <div key={`remaining-${i}`} className="flex h-full w-full gap-x-1">
-            {row.map((guess, j) => (
-              <TransparentLetterBox key={`remainingbox-${j}`}>{guess}</TransparentLetterBox>
+            {row.letters.map((cell, j) => (
+              <TransparentLetterBox key={`remaining-box-${j}`}>{cell.letter}</TransparentLetterBox>
             ))}
           </div>
         ))}
@@ -58,15 +48,17 @@ const GameBoard: React.FC<{
   );
 };
 
-const GuessBox: React.FC<{ guess: GuessState }> = ({ guess }) => {
+const GuessBox: React.FC<{ cell: BoardCell }> = ({ cell }) => {
   const color = () => {
-    switch (guess.guess) {
+    switch (cell.guess) {
       case LetterGuess.Incorrect:
         return "bg-gray-500 dark:bg-gray-700";
       case LetterGuess.InLocation:
         return "bg-green-600";
       case LetterGuess.InWord:
         return "bg-yellow-500";
+      default:
+        return "bg-white dark:bg-darkmode";
     }
   };
   return (
@@ -75,14 +67,14 @@ const GuessBox: React.FC<{ guess: GuessState }> = ({ guess }) => {
         "text-white uppercase w-full h-full font-extrabold text-3xl flex justify-center items-center",
         color(),
       )}>
-      {guess.letter}
+      {cell.letter}
     </div>
   );
 };
 
-const LetterBox: React.FC<{ guess: UserLetterGuess }> = ({ guess }) => {
+const LetterBox: React.FC<{ cell: BoardCell }> = ({ cell }) => {
   const color = () => {
-    switch (guess.guess) {
+    switch (cell.guess) {
       case LetterGuess.Incorrect:
         return "bg-gray-500 dark:bg-gray-700";
       case LetterGuess.InLocation:
@@ -98,8 +90,8 @@ const LetterBox: React.FC<{ guess: UserLetterGuess }> = ({ guess }) => {
     <div
       className={classnames(
         "uppercase w-full h-full font-extrabold text-3xl relative transition-transform",
-        guess.letter === "" ? "" : "animate-pop",
-        guess.animate ? "animate-card" : "",
+        cell.letter === "" ? "" : "animate-pop",
+        cell.animate ? "animate-card" : "",
         styles.cardContainer,
       )}>
       <div
@@ -109,17 +101,17 @@ const LetterBox: React.FC<{ guess: UserLetterGuess }> = ({ guess }) => {
           styles.card,
           color(),
         )}>
-        {guess.letter}
+        {cell.letter}
       </div>
       <div
         className={classnames(
           "h-full w-full absolute flex justify-center items-center bg-white dark:bg-darkmode text-black dark:text-white border-2",
-          guess.letter === ""
+          cell.letter === ""
             ? "border-gray-400 dark:border-gray-600"
             : "border-gray-500 dark:border-gray-700",
           styles.card,
         )}>
-        {guess.letter}
+        {cell.letter}
       </div>
     </div>
   );
@@ -132,3 +124,7 @@ const TransparentLetterBox: React.FC = ({ children }) => (
 );
 
 export default GameBoard;
+
+export { useGameBoardState, BoardRowType } from "./gameBoardState";
+
+export type { GameBoardAction, BoardCell, BoardRow, GameBoardState } from "./gameBoardState";

@@ -41,6 +41,12 @@ const DrawerLayout: React.FC = ({ children }) => {
         <div className="drawer-side">
           <label htmlFor="my-drawer" className="drawer-overlay" />
           <div className="menu p-4 overflow-y-auto w-64 sm:w-80 bg-base-100 flex flex-col">
+            <button className="btn mb-4" onClick={() => router.push("/game")}>
+              play
+            </button>
+            <button className="btn" onClick={() => router.push("/leaderboards")}>
+              leaderboards
+            </button>
             <div className="flex-grow" />
             {!!user && (
               <button

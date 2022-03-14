@@ -1,6 +1,12 @@
 import type { NextPage } from "next";
-import BaseLayout from "components/BaseLayout";
+import DrawerLayout from "../components/DrawerLayout";
+import MetaTags from "../components/MetaTags";
 
-const Game: NextPage = () => <BaseLayout>hi</BaseLayout>;
+const Game: NextPage = () => (
+  <>
+    <MetaTags />
+    <DrawerLayout>hi</DrawerLayout>
+  </>
+);
 
 export default Game;

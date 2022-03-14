@@ -1,16 +1,10 @@
 import type { NextPage } from "next";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import GameBoard, { CurrentGuessState } from "components/GameBoard";
+import React, { useCallback, useEffect } from "react";
+import GameBoard, { useGameBoardState } from "components/GameBoard";
 import { useGuessMutation, useTodayGameBoard } from "query/guess";
-import {
-  GameBoard as GameBoardType,
-  GameState,
-  GuessError,
-  InvalidGuess,
-  LetterGuess,
-} from "codegen";
+import { GameBoard as GameBoardType, GameState, GuessError, InvalidGuess } from "codegen";
 import LoadingSpinner from "components/LoadingSpinner";
-import Keyboard, { KeyboardState } from "components/Keyboard";
+import Keyboard from "components/Keyboard";
 import { useFirebaseUser } from "library/auth";
 import { useRouter } from "next/router";
 import { useQueryClient } from "react-query";
@@ -19,28 +13,34 @@ import DrawerLayout from "components/DrawerLayout";
 import { doEvery } from "utils/time";
 import Head from "next/head";
 import MetaTags from "../components/MetaTags";
+import Modal from "../components/Modal";
 
 const Game: NextPage = () => {
   const { user, loading: userLoading } = useFirebaseUser();
-  const [guess, setCurrentGuess] = useState<CurrentGuessState>([]);
-  const router = useRouter();
-  const [wrongGuess, setWrongGuess] = useState(false);
-  const queryClient = useQueryClient();
-
   const { data, refetch } = useTodayGameBoard({ enabled: false, user: user?.uid || "" });
+  const [state, dispatch] = useGameBoardState();
+
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const notify = useCallback((text: string) => toast(text), []);
 
   // fetch board when we are sure we have a user otherwise redirect
   useEffect(() => {
     if (!userLoading) {
       user ? refetch() : router.push("/");
-      refetch();
     }
   }, [refetch, router, user, userLoading]);
 
-  const guessMutation = useGuessMutation({
+  useEffect(() => {
+    if (data?.state === GameState.Lost || data?.state === GameState.Won) {
+      dispatch({ type: "open_modal" });
+    }
+  }, [data?.state, dispatch]);
+
+  const { mutate } = useGuessMutation({
     onSuccess: (result) => {
       if ((result as InvalidGuess).error === undefined) {
+        dispatch({ type: "guess_success" });
         const serverGuesses = [...(result as GameBoardType).guesses];
         const lastGuess = serverGuesses.pop();
         if (lastGuess === undefined) {
@@ -50,102 +50,45 @@ const Game: NextPage = () => {
 
         const actions: (() => void)[] = [];
         for (let i = 0; i < 6; i++) {
-          actions.push(() => {
-            const nextGuessState: CurrentGuessState = [];
-            lastGuess.slice(0, i).forEach((value) => {
-              nextGuessState.push({ ...value, letter: value.letter.toUpperCase(), animate: true });
-            });
-            lastGuess.slice(i).forEach((value) => {
-              nextGuessState.push({ ...value, letter: value.letter.toUpperCase(), animate: false });
-            });
-            setCurrentGuess(nextGuessState);
-          });
+          actions.push(() => dispatch({ type: "animate_up_to", upTo: i, lastGuess }));
         }
-
         doEvery(400, actions).then(() => {
-          setCurrentGuess([]);
           queryClient.setQueryData(["todayBoard", `user-${user?.uid}`], result);
         });
       } else {
         const err = result as InvalidGuess;
-        setWrongGuess(true);
-        setTimeout(() => setWrongGuess(false), 250);
-
-        // show toast
         switch (err.error) {
-          case GuessError.InvalidLength:
-            notify("Too short");
-            break;
           case GuessError.NotAWord:
-            notify("Invalid guess");
+            dispatch({ type: "guess_error", message: "Invalid guess" });
+            break;
+          case GuessError.InvalidLength:
+            dispatch({ type: "guess_error", message: "Guess must be five letters" });
             break;
         }
       }
     },
   });
 
-  const onLetterPress = useCallback(
-    (letter: string) => {
-      setCurrentGuess((prevState) => {
-        if (prevState.length < 5 && data?.state === GameState.InProgress) {
-          return [...prevState, { letter, animate: false }];
-        } else {
-          return prevState;
-        }
+  useEffect(() => {
+    if (!!state.pendingGuess?.length) {
+      mutate({
+        word: state.pendingGuess,
       });
-    },
-    [data?.state],
-  );
-
-  const onBackspace = useCallback(() => {
-    setCurrentGuess((prevState) => {
-      if (prevState.length !== 0) {
-        return [...prevState.slice(0, prevState.length - 1)];
-      } else {
-        return prevState;
-      }
-    });
-  }, []);
-
-  const onGuess = () => {
-    if (data?.state !== GameState.InProgress) {
-      return;
-    } else if (guess.length === 5) {
-      guessMutation.mutate({
-        word: guess
-          .map((curr) => curr.letter)
-          .join("")
-          .toLowerCase(),
-      });
-    } else {
-      setWrongGuess(true);
-      setTimeout(() => setWrongGuess(false), 250);
-      notify("Too short");
     }
-  };
+  }, [mutate, state.pendingGuess]);
 
-  const keyboardState = useMemo(() => {
-    const correctSet: KeyboardState = {};
-    const inWordSet: KeyboardState = {};
-    const incorrectSet: KeyboardState = {};
+  useEffect(() => {
+    if (data?.guesses !== undefined) {
+      dispatch({ type: "recompute_game_board", guesses: data.guesses });
+    }
+  }, [data?.guesses, dispatch]);
 
-    data?.guesses.forEach((row) =>
-      row.forEach((guess) => {
-        switch (guess.guess) {
-          case LetterGuess.InLocation:
-            correctSet[guess.letter.toUpperCase()] = true;
-            break;
-          case LetterGuess.InWord:
-            inWordSet[guess.letter.toUpperCase()] = true;
-            break;
-          case LetterGuess.Incorrect:
-            incorrectSet[guess.letter.toUpperCase()] = true;
-            break;
-        }
-      }),
-    );
-    return { correctSet, inWordSet, incorrectSet };
-  }, [data?.guesses]);
+  useEffect(() => {
+    if (!!state.wrongGuess) {
+      notify(state.wrongGuess);
+      setTimeout(() => dispatch({ type: "dismiss_guess_error" }), 250);
+    }
+  }, [dispatch, notify, state.wrongGuess]);
 
   return (
     <>
@@ -157,22 +100,26 @@ const Game: NextPage = () => {
         <div className="max-w-lg w-full flex flex-col flex-grow pb-2 px-1">
           <Toaster />
           {!!data ? (
-            <GameBoard state={data} currentWord={guess} shouldShake={wrongGuess} />
+            <>
+              <GameBoard gameBoardState={state.gameBoardState} shouldShake={!!state.wrongGuess} />
+              <Keyboard
+                onLetterPress={(letter) =>
+                  dispatch({ type: "letter_pressed", letter, state: data.state })
+                }
+                onGuess={() => dispatch({ type: "guess", state: data.state })}
+                onBackspace={() => dispatch({ type: "backspace_pressed" })}
+                correctSet={state.correctLetters}
+                inWordSet={state.inWordLetters}
+                incorrectSet={state.incorrectLetters}
+              />
+            </>
           ) : (
             <div className="flex-grow flex items-center">
               <LoadingSpinner />
             </div>
           )}
-
-          <Keyboard
-            onLetterPress={onLetterPress}
-            onGuess={onGuess}
-            onBackspace={onBackspace}
-            correctSet={keyboardState.correctSet}
-            inWordSet={keyboardState.inWordSet}
-            incorrectSet={keyboardState.incorrectSet}
-          />
         </div>
+        <Modal open={state.isModalOpen} closeModal={() => dispatch({ type: "close_modal" })} />
       </DrawerLayout>
     </>
   );
