@@ -103,15 +103,21 @@ func (s *Service) Guess(ctx context.Context, userId, guess string) (models.Guess
 		return models.InvalidGuess{Error: models.GuessErrorInvalidLength}, nil
 	}
 
+	// is this a word?
 	if _, ok := guesses[guess]; ok {
 		solution := solutions[today]
 		newGuess := make([]models.GuessState, 5)
+		flattenedGuesses := flattenGuesses(gameBoard.Guesses, solution)
 		won := true
 		for i, l := range guess {
+			letter := string(l)
 			newGuess[i].Letter = string(l)
-			if string(l) == string(solution[i]) {
+			inWord := strings.Contains(solution, letter)
+
+			if letter == string(solution[i]) {
 				newGuess[i].Guess = models.LetterGuessInLocation
-			} else if strings.Contains(solution, string(l)) {
+				flattenedGuesses[i].correct = true
+			} else if inWord && hasRemainingLetter(flattenedGuesses, letter) {
 				won = false
 				newGuess[i].Guess = models.LetterGuessInWord
 			} else {
@@ -135,6 +141,37 @@ func (s *Service) Guess(ctx context.Context, userId, guess string) (models.Guess
 	} else {
 		return models.InvalidGuess{Error: models.GuessErrorNotAWord}, nil
 	}
+}
+
+type guessAtLocation struct {
+	letter  string
+	correct bool
+}
+
+// flattenGuesses creates a list showing which letters have been guessed correctly so far
+func flattenGuesses(guesses [][]models.GuessState, solution string) []guessAtLocation {
+	flattened := make([]guessAtLocation, 5)
+	for i, letter := range strings.Split(solution, "") {
+		flattened[i].letter = letter
+	}
+
+	for _, row := range guesses {
+		for i, guess := range row {
+			if guess.Guess == models.LetterGuessInLocation {
+				flattened[i].correct = true
+			}
+		}
+	}
+	return flattened
+}
+
+func hasRemainingLetter(guesses []guessAtLocation, letter string) bool {
+	for _, guess := range guesses {
+		if letter == guess.letter && !guess.correct {
+			return true
+		}
+	}
+	return false
 }
 
 func timeToWordleDay(t time.Time) int {
