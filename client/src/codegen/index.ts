@@ -73,18 +73,12 @@ export enum LetterGuess {
 export type Mutation = {
   __typename?: 'Mutation';
   createLeaderboard: Leaderboard;
-  createUser: NewUserResult;
   guess: GuessResult;
 };
 
 
 export type MutationCreateLeaderboardArgs = {
   input: Scalars['String'];
-};
-
-
-export type MutationCreateUserArgs = {
-  input: NewUser;
 };
 
 
@@ -95,22 +89,14 @@ export type MutationGuessArgs = {
 export type NewUser = {
   displayName?: InputMaybe<Scalars['String']>;
   id: Scalars['ID'];
-  token: Scalars['String'];
 };
-
-export type NewUserError = {
-  __typename?: 'NewUserError';
-  error: CreateNewUserError;
-};
-
-export type NewUserResult = NewUserError | User;
 
 export type Query = {
   __typename?: 'Query';
   day?: Maybe<GameBoard>;
   leaderboard?: Maybe<Leaderboard>;
+  me: User;
   todayBoard: GameBoard;
-  user: User;
 };
 
 
@@ -120,11 +106,6 @@ export type QueryDayArgs = {
 
 
 export type QueryLeaderboardArgs = {
-  input: Scalars['ID'];
-};
-
-
-export type QueryUserArgs = {
   input: Scalars['ID'];
 };
 

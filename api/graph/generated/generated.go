@@ -416,7 +416,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "schema.graphql", Input: `# Game State
+	{Name: "../schema.graphql", Input: `# Game State
 enum LetterGuess {
   INCORRECT,
   IN_WORD,
