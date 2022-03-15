@@ -40,7 +40,6 @@ const Game: NextPage = () => {
   const { mutate } = useGuessMutation({
     onSuccess: (result) => {
       if ((result as InvalidGuess).error === undefined) {
-        dispatch({ type: "guess_success" });
         const serverGuesses = [...(result as GameBoardType).guesses];
         const lastGuess = serverGuesses.pop();
         if (lastGuess === undefined) {
@@ -49,11 +48,12 @@ const Game: NextPage = () => {
         }
 
         const actions: (() => void)[] = [];
-        for (let i = 0; i < 6; i++) {
+        for (let i = 1; i < 6; i++) {
           actions.push(() => dispatch({ type: "animate_up_to", upTo: i, lastGuess }));
         }
         doEvery(400, actions).then(() => {
           queryClient.setQueryData(["todayBoard", `user-${user?.uid}`], result);
+          dispatch({ type: "guess_success" });
         });
       } else {
         const err = result as InvalidGuess;

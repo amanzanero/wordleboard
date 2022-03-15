@@ -1,4 +1,4 @@
-import React, { Reducer, useReducer } from "react";
+import { Reducer, useReducer } from "react";
 import { GameBoard as GameBoardType, GameState, GuessState, LetterGuess } from "codegen";
 import { KeyboardState } from "components/Keyboard";
 
@@ -82,7 +82,6 @@ const gameReducer: Reducer<GameBoardState, GameBoardAction> = (
       } else if (previousState.currentGuessState.length === 5) {
         return {
           ...previousState,
-          currentGuessState: [],
           pendingGuess: previousState.currentGuessState
             .map((curr) => curr.letter)
             .join("")
@@ -92,9 +91,17 @@ const gameReducer: Reducer<GameBoardState, GameBoardAction> = (
         return { ...previousState, wrongGuess: "Too short" };
       }
     case "guess_success":
-      return { ...previousState, pendingGuess: undefined };
+      return {
+        ...previousState,
+        currentGuessState: [],
+        pendingGuess: undefined,
+      };
     case "guess_error":
-      return { ...previousState, wrongGuess: action.message, pendingGuess: undefined };
+      return {
+        ...previousState,
+        wrongGuess: action.message,
+        pendingGuess: undefined,
+      };
     case "dismiss_guess_error":
       return { ...previousState, wrongGuess: undefined };
     case "open_modal":
