@@ -77,11 +77,12 @@ const gameReducer: Reducer<GameBoardState, GameBoardAction> = (
       }
       return previousState;
     case "guess":
-      if (action.state !== GameState.InProgress) {
+      if (action.state !== GameState.InProgress || !!previousState.pendingGuess) {
         return previousState;
       } else if (previousState.currentGuessState.length === 5) {
         return {
           ...previousState,
+          currentGuessState: [],
           pendingGuess: previousState.currentGuessState
             .map((curr) => curr.letter)
             .join("")
