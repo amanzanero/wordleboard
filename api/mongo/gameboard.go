@@ -72,7 +72,7 @@ func (s *Service) FindGameBoardByUserAndDay(ctx context.Context, userId string, 
 	}, nil
 }
 
-func modelToPersistedModel(gb models.GameBoard) persistedGameBoard {
+func gameBoardModelToPersistedModel(gb models.GameBoard) persistedGameBoard {
 	guesses := make([][]guess, len(gb.Guesses))
 	for i, guessRow := range gb.Guesses {
 		row := make([]guess, len(guessRow))
@@ -92,7 +92,7 @@ func modelToPersistedModel(gb models.GameBoard) persistedGameBoard {
 }
 
 func (s *Service) InsertGameBoard(ctx context.Context, userId string, gameBoard models.GameBoard) error {
-	persist := modelToPersistedModel(gameBoard)
+	persist := gameBoardModelToPersistedModel(gameBoard)
 	userOid, _ := primitive.ObjectIDFromHex(userId)
 
 	collection := s.database.Collection("users")
@@ -117,7 +117,7 @@ func (s *Service) InsertGameBoard(ctx context.Context, userId string, gameBoard 
 
 func (s *Service) UpdateGameBoardByUserAndDay(ctx context.Context, day int, userId string, gameBoard models.GameBoard) error {
 	userOid, _ := primitive.ObjectIDFromHex(userId)
-	persist := modelToPersistedModel(gameBoard)
+	persist := gameBoardModelToPersistedModel(gameBoard)
 
 	collection := s.database.Collection("users")
 	filter := bson.M{"_id": userOid, "game_boards.day": day}

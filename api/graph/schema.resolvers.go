@@ -5,7 +5,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/amanzanero/wordleboard/api/graph/generated"
@@ -80,11 +79,15 @@ func (r *queryResolver) Leaderboard(ctx context.Context, joinID string) (models.
 }
 
 func (r *userResolver) Leaderboards(ctx context.Context, obj *models.User) ([]*models.Leaderboard, error) {
-	panic(fmt.Errorf("Leaderboards not implemented"))
+	cancelCtx, cancel := context.WithTimeout(ctx, r.Timeout)
+	defer cancel()
+	return r.LeaderboardService.GetLeaderboardsForUser(cancelCtx, *obj)
 }
 
 func (r *userResolver) IndividualStats(ctx context.Context, obj *models.User) ([]*models.UserStat, error) {
-	panic(fmt.Errorf("IndividualStats not implemented"))
+	cancelCtx, cancel := context.WithTimeout(ctx, r.Timeout)
+	defer cancel()
+	return r.LeaderboardService.GetStatsForUser(cancelCtx, *obj)
 }
 
 // Leaderboard returns generated.LeaderboardResolver implementation.

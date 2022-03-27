@@ -76,6 +76,7 @@ func (s *Service) InsertUser(ctx context.Context, user models.NewUser) error {
 	persist := &persistedUser{
 		DisplayName: user.DisplayName,
 		OauthUuid:   user.ID,
+		GameBoards:  make([]persistedGameBoard, 0),
 	}
 	_, err := col.InsertOne(ctx, persist)
 	if err != nil {

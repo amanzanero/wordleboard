@@ -13,6 +13,8 @@ type LeaderboardRepo interface {
 	UpdateLeaderboardById(ctx context.Context, id string, leaderboard Leaderboard) error
 	FindLeaderBoardMembers(ctx context.Context, members []string) ([]*User, error)
 	FindLeaderboardStatsForMembers(ctx context.Context, members []string) (map[User][]UserStat, error)
+	FindLeaderboardsForUser(ctx context.Context, userId string) ([]*Leaderboard, error)
+	FindGameBoardsForUser(ctx context.Context, userId string) ([]*GameBoard, error)
 }
 
 type Leaderboard struct {

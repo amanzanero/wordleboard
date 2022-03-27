@@ -116,3 +116,26 @@ func (s *Service) GetStatsForLeaderboard(ctx context.Context, lb models.Leaderbo
 
 	return lbStats, err
 }
+
+func (s *Service) GetLeaderboardsForUser(ctx context.Context, user models.User) ([]*models.Leaderboard, error) {
+	return s.Repo.FindLeaderboardsForUser(ctx, user.ID)
+}
+
+func (s *Service) GetStatsForUser(ctx context.Context, user models.User) ([]*models.UserStat, error) {
+	gameBoards, err := s.Repo.FindGameBoardsForUser(ctx, user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	stats := make([]*models.UserStat, len(gameBoards))
+	for i, gb := range gameBoards {
+		stats[i] = &models.UserStat{
+			Day:     gb.Day,
+			Guesses: gb.Guesses,
+			State:   gb.State,
+			User:    user,
+		}
+	}
+
+	return stats, nil
+}

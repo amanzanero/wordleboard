@@ -205,3 +205,65 @@ func (s *Service) FindLeaderboardStatsForMembers(ctx context.Context, members []
 	}
 	return stats, nil
 }
+
+func (s *Service) FindLeaderboardsForUser(ctx context.Context, userId string) ([]*models.Leaderboard, error) {
+	userOid, _ := primitive.ObjectIDFromHex(userId)
+	collection := s.database.Collection("leaderboards")
+	filter := bson.M{"member_ids": bson.M{"$elemMatch": bson.M{"$eq": userOid}}}
+
+	leaderboards, lookupErr := collection.Find(ctx, filter)
+	if lookupErr != nil {
+		s.logger.Errorf("FindLeaderboardsForUser failed: %v", lookupErr)
+		return nil, models.ErrRepoFailed
+	}
+
+	lbs := make([]*models.Leaderboard, 0)
+	for leaderboards.Next(ctx) {
+		persistedLb := new(persistLeaderboard)
+		decodeErr := leaderboards.Decode(persistedLb)
+		if decodeErr != nil {
+			s.logger.Errorf("FindLeaderboardsForUser failed: %v", decodeErr)
+			return nil, models.ErrRepoFailed
+		}
+		model := persistedLeaderboardToModel(*persistedLb)
+		lbs = append(lbs, &model)
+	}
+	if leaderboards.Err() != nil {
+		s.logger.Errorf("FindLeaderboardsForUser failed: %v", leaderboards.Err())
+		return nil, models.ErrRepoFailed
+	}
+
+	return lbs, nil
+}
+
+func (s *Service) FindGameBoardsForUser(ctx context.Context, userId string) ([]*models.GameBoard, error) {
+	userOid, _ := primitive.ObjectIDFromHex(userId)
+	collection := s.database.Collection("users")
+	filter := bson.M{"_id": userOid}
+
+	documentResult := collection.FindOne(ctx, filter)
+	if documentResult.Err() != nil {
+		s.logger.Errorf("FindStatsForUser failed: %v", documentResult.Err())
+		return nil, models.ErrRepoFailed
+	}
+
+	pu := new(persistedUser)
+	decodeErr := documentResult.Decode(pu)
+	if decodeErr != nil {
+		s.logger.Errorf("FindStatsForUser failed: %v", decodeErr)
+		return nil, models.ErrRepoFailed
+	}
+
+	gameBoards := make([]*models.GameBoard, 0)
+	for _, gb := range pu.GameBoards {
+		gameBoards = append(
+			gameBoards,
+			&models.GameBoard{
+				Day:     gb.Day,
+				Guesses: persistedGuessesToModel(gb.Guesses),
+				State:   gb.State,
+			},
+		)
+	}
+	return gameBoards, nil
+}
