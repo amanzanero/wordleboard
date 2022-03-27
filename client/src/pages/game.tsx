@@ -33,7 +33,11 @@ const Game: NextPage = () => {
 
   useEffect(() => {
     if (data?.state === GameState.Lost || data?.state === GameState.Won) {
-      dispatch({ type: "open_modal" });
+      dispatch({
+        type: "open_modal",
+        title: data.state === GameState.Won ? "Nice job!" : "Almost got it!",
+        text: data.state === GameState.Won ? "alksjd;alksd" : " a;slkdjfa;sld",
+      });
     }
   }, [data?.state, dispatch]);
 
@@ -119,8 +123,13 @@ const Game: NextPage = () => {
             </div>
           )}
         </div>
-        <Modal open={state.isModalOpen} closeModal={() => dispatch({ type: "close_modal" })} />
       </DrawerLayout>
+      <Modal
+        open={state.modalState.open}
+        closeModal={() => dispatch({ type: "close_modal" })}
+        title={state.modalState.title}>
+        {state.modalState.text}
+      </Modal>
     </>
   );
 };

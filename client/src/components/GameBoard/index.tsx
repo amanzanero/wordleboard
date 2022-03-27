@@ -29,7 +29,7 @@ const GameBoard: React.FC<{
           <div
             className={classnames(
               "flex h-full w-full gap-x-1",
-              shouldShake ? "animate-wiggle" : "",
+              shouldShake ? "animate-wiggle" : undefined,
             )}>
             {currentGuessRow.letters.map((cell, i) => (
               <LetterBox key={`current-${cell.letter}-${i}`} cell={cell} />
@@ -90,8 +90,8 @@ const LetterBox: React.FC<{ cell: BoardCell }> = ({ cell }) => {
     <div
       className={classnames(
         "uppercase w-full h-full font-extrabold text-3xl relative transition-transform",
-        cell.letter === "" ? "" : "animate-pop",
-        cell.animate ? "animate-card" : "",
+        cell.letter === "" ? undefined : "animate-pop",
+        cell.animate ? "animate-card" : undefined,
         styles.cardContainer,
       )}>
       <div

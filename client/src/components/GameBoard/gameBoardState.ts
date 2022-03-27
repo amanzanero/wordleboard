@@ -21,7 +21,7 @@ export type BoardRow = {
 
 export type GameBoardState = {
   wrongGuess?: string;
-  isModalOpen: boolean;
+  modalState: { open: boolean; title: string; text: string };
   correctLetters: KeyboardState;
   incorrectLetters: KeyboardState;
   inWordLetters: KeyboardState;
@@ -38,7 +38,7 @@ export type GameBoardAction =
   | { type: "guess_success" }
   | { type: "guess_error"; message: string }
   | { type: "dismiss_guess_error" }
-  | { type: "open_modal" }
+  | { type: "open_modal"; title: string; text: string }
   | { type: "close_modal" }
   | { type: "recompute_game_board"; guesses: GameBoardType["guesses"] }
   | { type: "animate_up_to"; upTo: number; lastGuess: GuessState[] };
@@ -105,9 +105,16 @@ const gameReducer: Reducer<GameBoardState, GameBoardAction> = (
     case "dismiss_guess_error":
       return { ...previousState, wrongGuess: undefined };
     case "open_modal":
-      return { ...previousState, isModalOpen: true };
+      return {
+        ...previousState,
+        modalState: {
+          open: true,
+          title: action.title,
+          text: action.text,
+        },
+      };
     case "close_modal":
-      return { ...previousState, isModalOpen: false };
+      return { ...previousState, modalState: { ...previousState.modalState, open: false } };
     case "recompute_game_board":
       const boardRows: BoardRow[] =
         action.guesses.map((row) => {
@@ -205,7 +212,7 @@ function nextBoardState(previousGameBoard: BoardRow[], nextGuess: BoardCell[]): 
 
 export function useGameBoardState(): [GameBoardState, (a: GameBoardAction) => void] {
   const [localState, dispatch] = useReducer(gameReducer, {
-    isModalOpen: false,
+    modalState: { open: false, title: "", text: "" },
     correctLetters: {},
     incorrectLetters: {},
     inWordLetters: {},

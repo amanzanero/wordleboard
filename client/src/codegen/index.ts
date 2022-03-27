@@ -13,17 +13,11 @@ export type Scalars = {
   Float: number;
 };
 
-export enum CreateNewUserError {
-  InvalidCredentials = 'InvalidCredentials',
-  UserAlreadyExists = 'UserAlreadyExists'
-}
-
 export type GameBoard = {
   __typename?: 'GameBoard';
   day: Scalars['Int'];
   guesses: Array<Array<GuessState>>;
   state: GameState;
-  user: User;
 };
 
 export enum GameState {
@@ -52,10 +46,25 @@ export type InvalidGuess = {
 
 export type Leaderboard = {
   __typename?: 'Leaderboard';
-  id: Scalars['Int'];
+  id: Scalars['ID'];
   members: Array<User>;
   name: Scalars['String'];
+  owner: Scalars['ID'];
   stats: Array<LeaderboardStat>;
+};
+
+export enum LeaderboardError {
+  CouldNotCreate = 'CouldNotCreate',
+  DoesNotExist = 'DoesNotExist',
+  MaxCapacity = 'MaxCapacity',
+  NotAuthorized = 'NotAuthorized'
+}
+
+export type LeaderboardResult = Leaderboard | LeaderboardResultError;
+
+export type LeaderboardResultError = {
+  __typename?: 'LeaderboardResultError';
+  error: LeaderboardError;
 };
 
 export type LeaderboardStat = {
@@ -72,18 +81,24 @@ export enum LetterGuess {
 
 export type Mutation = {
   __typename?: 'Mutation';
-  createLeaderboard: Leaderboard;
+  createLeaderboard: LeaderboardResult;
   guess: GuessResult;
+  joinLeaderboard: LeaderboardResult;
 };
 
 
 export type MutationCreateLeaderboardArgs = {
-  input: Scalars['String'];
+  name: Scalars['String'];
 };
 
 
 export type MutationGuessArgs = {
   input: Scalars['String'];
+};
+
+
+export type MutationJoinLeaderboardArgs = {
+  id: Scalars['String'];
 };
 
 export type NewUser = {
@@ -94,7 +109,7 @@ export type NewUser = {
 export type Query = {
   __typename?: 'Query';
   day?: Maybe<GameBoard>;
-  leaderboard?: Maybe<Leaderboard>;
+  leaderboard: LeaderboardResult;
   me: User;
   todayBoard: GameBoard;
 };
@@ -106,7 +121,7 @@ export type QueryDayArgs = {
 
 
 export type QueryLeaderboardArgs = {
-  input: Scalars['ID'];
+  joinId: Scalars['ID'];
 };
 
 export type User = {
@@ -120,8 +135,8 @@ export type User = {
 export type UserStat = {
   __typename?: 'UserStat';
   day: Scalars['Int'];
-  gameState: GameState;
-  guessCount: Scalars['Int'];
+  guesses: Array<Array<GuessState>>;
+  state: GameState;
   user: User;
 };
 
