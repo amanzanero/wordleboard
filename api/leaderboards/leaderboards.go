@@ -6,6 +6,7 @@ import (
 	"github.com/amanzanero/wordleboard/api/models"
 	"github.com/lithammer/shortuuid/v4"
 	"github.com/sirupsen/logrus"
+	"sort"
 )
 
 type Service struct {
@@ -96,25 +97,35 @@ func (s *Service) GetStatsForLeaderboard(ctx context.Context, lb models.Leaderbo
 			if entry, ok := dayToStat[stat.Day]; !ok {
 				newLeaderboardStat := models.LeaderboardStat{
 					Day:   stat.Day,
-					Stats: make([]*models.UserStat, 1),
+					Stats: make([]models.UserStat, 1),
 				}
-				newLeaderboardStat.Stats[0] = &stat
+				newLeaderboardStat.Stats[0] = stat
 				dayToStat[stat.Day] = newLeaderboardStat
 			} else {
-				entry.Stats = append(entry.Stats, &stat)
+				entry.Stats = append(entry.Stats, stat)
 				dayToStat[stat.Day] = entry
 			}
 		}
 	}
 
-	lbStats := make([]*models.LeaderboardStat, len(dayToStat))
+	lbStats := make([]models.LeaderboardStat, len(dayToStat))
 	i := 0
 	for _, lbStat := range dayToStat {
-		lbStats[i] = &lbStat
+		lbStats[i] = lbStat
 		i += 1
 	}
 
-	return lbStats, err
+	// pointerize
+	returnStats := make([]*models.LeaderboardStat, len(lbStats))
+	for i := 0; i < len(returnStats); i += 1 {
+		returnStats[i] = &lbStats[i]
+	}
+
+	sort.Slice(returnStats, func(i, j int) bool {
+		return returnStats[i].Day < returnStats[j].Day
+	})
+
+	return returnStats, err
 }
 
 func (s *Service) GetLeaderboardsForUser(ctx context.Context, user models.User) ([]*models.Leaderboard, error) {

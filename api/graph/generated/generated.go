@@ -1147,9 +1147,9 @@ func (ec *executionContext) _LeaderboardStat_stats(ctx context.Context, field gr
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*models.UserStat)
+	res := resTmp.([]models.UserStat)
 	fc.Result = res
-	return ec.marshalNUserStat2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐUserStatᚄ(ctx, field.Selections, res)
+	return ec.marshalNUserStat2ᚕgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐUserStatᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_guess(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4407,6 +4407,54 @@ func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋamanzaneroᚋwordlebo
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNUserStat2githubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐUserStat(ctx context.Context, sel ast.SelectionSet, v models.UserStat) graphql.Marshaler {
+	return ec._UserStat(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUserStat2ᚕgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐUserStatᚄ(ctx context.Context, sel ast.SelectionSet, v []models.UserStat) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNUserStat2githubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐUserStat(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalNUserStat2ᚕᚖgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐUserStatᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.UserStat) graphql.Marshaler {
