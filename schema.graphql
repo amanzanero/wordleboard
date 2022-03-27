@@ -18,7 +18,6 @@ enum GameState {
 
 type GameBoard {
   day: Int!
-  user: User!
   guesses: [[GuessState!]!]!
   state: GameState!
 }
@@ -47,16 +46,11 @@ input NewUser {
   displayName: String
 }
 
-enum CreateNewUserError {
-  UserAlreadyExists
-  InvalidCredentials
-}
-
 type UserStat {
   user: User!
   day: Int!
-  guessCount: Int!
-  gameState: GameState!
+  guesses: [[GuessState!]!]!
+  state: GameState!
 }
 
 type LeaderboardStat {
@@ -65,20 +59,35 @@ type LeaderboardStat {
 }
 
 type Leaderboard {
-  id: Int!
+  id: ID!
   name: String!
   members: [User!]!
   stats: [LeaderboardStat!]!
+  owner: ID!
 }
+
+enum LeaderboardError {
+  DoesNotExist
+  MaxCapacity
+  CouldNotCreate
+  NotAuthorized
+}
+
+type LeaderboardResultError {
+  error: LeaderboardError!
+}
+
+union LeaderboardResult = Leaderboard | LeaderboardResultError
 
 type Query {
   day(input: Int!): GameBoard
   todayBoard: GameBoard!
   me: User!
-  leaderboard(input: ID!): Leaderboard
+  leaderboard(joinId: ID!): LeaderboardResult!
 }
 
 type Mutation {
   guess(input: String!): GuessResult! # guesses only apply to today's board
-  createLeaderboard(input: String!): Leaderboard!
+  createLeaderboard(name: String!): LeaderboardResult!
+  joinLeaderboard(id: String!): LeaderboardResult!
 }
