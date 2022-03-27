@@ -1,5 +1,6 @@
 mutation Guess($word: String!) {
   guess(input: $word) {
+    __typename
     ... on GameBoard {
       day
       guesses {
@@ -22,5 +23,58 @@ query Today {
       guess
     }
     state
+  }
+}
+
+query LeaderboardByJoinId($joinId: ID!)  {
+  leaderboard(joinId: $joinId) {
+    __typename
+    ... on Leaderboard {
+      name
+      members {
+        displayName,
+      }
+      stats {
+        day
+        stats {
+          user {
+            displayName
+          }
+          day
+          guesses {
+            letter
+            guess
+          }
+        }
+      }
+    }
+    ... on LeaderboardResultError {
+      error
+    }
+  }
+}
+
+mutation NewLeaderboard($name: String!) {
+  createLeaderboard(name: $name) {
+    __typename
+    ... on Leaderboard {
+      name
+      id
+    }
+    ... on LeaderboardResultError {
+      error
+    }
+  }
+}
+
+query MyLeaderboards {
+  me {
+    leaderboards {
+      name
+      id
+      members {
+        displayName
+      }
+    }
   }
 }

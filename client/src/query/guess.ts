@@ -1,27 +1,19 @@
-import {
-  useMutation,
-  UseMutationOptions,
-  useQuery,
-  useQueryClient,
-  UseQueryOptions,
-} from "react-query";
+import { useMutation, UseMutationOptions, useQuery, UseQueryOptions } from "react-query";
 import { useGraphqlRequest } from "./baseQuery";
 import {
   GuessDocument,
   GuessMutation,
   GuessMutationVariables,
-  InvalidGuess,
   TodayDocument,
   TodayQuery,
 } from "codegen";
-import { GraphQLError } from "graphql";
-import { useFirebaseUser } from "../library/auth";
+import { ClientError } from "graphql-request";
 
 export function useGuessMutation(
-  options: UseMutationOptions<GuessMutation["guess"], GraphQLError, GuessMutationVariables>,
+  options: UseMutationOptions<GuessMutation["guess"], ClientError, GuessMutationVariables>,
 ) {
   const request = useGraphqlRequest();
-  return useMutation<GuessMutation["guess"], GraphQLError, GuessMutationVariables>(
+  return useMutation<GuessMutation["guess"], ClientError, GuessMutationVariables>(
     ["guess"],
     (args) => request(GuessDocument, args).then((data) => data.guess),
     options,

@@ -1,15 +1,35 @@
 import React, { Reducer, useReducer } from "react";
 import type { NextPage } from "next";
+import { useRouter } from "next/router";
 import { useForm, SubmitHandler } from "react-hook-form";
 import DrawerLayout from "components/DrawerLayout";
 import MetaTags from "components/MetaTags";
 import Modal, { type ModalProps } from "components/Modal";
+import { useCreateNewLeaderboard, useMyLeaderboards } from "query/leaderboards";
+import LoadingSpinner from "components/LoadingSpinner";
+import { MyLeaderboardsQuery } from "codegen";
 
 const Game: NextPage = () => {
-  const leaderBoards = [];
+  const router = useRouter();
+
   const [modalState, dispatch] = useReducer(modalReducer, {
     joinModalOpen: false,
     createModalOpen: false,
+  });
+
+  const { data, isLoading } = useMyLeaderboards();
+
+  const { mutate: newLeaderboardMutation } = useCreateNewLeaderboard({
+    onSuccess: (data) => {
+      switch (data.__typename) {
+        case "Leaderboard":
+          router.push(`/leaderboards/${data.id}`);
+          break;
+        case "LeaderboardResultError":
+          console.error(data.error);
+          break;
+      }
+    },
   });
 
   return (
@@ -17,26 +37,14 @@ const Game: NextPage = () => {
       <MetaTags />
       <DrawerLayout>
         <div className="h-full">
-          {leaderBoards.length === 0 ? (
-            <div className="flex flex-col mt-4 px-2">
-              <span className="px-2">
-                Looks like you&apos;re not in any leaderboards, create or join one!
-              </span>
-              <div className="flex justify-between mt-4 px-2 gap-x-4">
-                <button
-                  className="btn flex-grow basis-0.5"
-                  onClick={() => dispatch({ type: "open_create" })}>
-                  Create
-                </button>
-                <button
-                  className="btn flex-grow basis-0.5"
-                  onClick={() => dispatch({ type: "open_join" })}>
-                  Join
-                </button>
-              </div>
-            </div>
+          {isLoading ? (
+            <LoadingSpinner />
           ) : (
-            <div>not empty</div>
+            <Content
+              data={data}
+              openCreateModal={() => dispatch({ type: "open_create" })}
+              openJoinModal={() => dispatch({ type: "open_join" })}
+            />
           )}
         </div>
       </DrawerLayout>
@@ -48,10 +56,49 @@ const Game: NextPage = () => {
       <CreateModal
         open={modalState.createModalOpen}
         closeModal={() => dispatch({ type: "close" })}
-        onSubmit={() => console.log("submit")}
+        onSubmit={(values) => {
+          console.log(values);
+          newLeaderboardMutation(values);
+        }}
       />
     </>
   );
+};
+
+const Content: React.FC<{
+  data: MyLeaderboardsQuery["me"] | undefined;
+  openCreateModal: () => void;
+  openJoinModal: () => void;
+}> = ({ data, openCreateModal, openJoinModal }) => {
+  if (!data) {
+    return <div>error</div>;
+  }
+  switch (data.leaderboards.length) {
+    case 0:
+      return (
+        <div className="flex flex-col mt-4 px-2">
+          <span className="px-2">
+            Looks like you&apos;re not in any leaderboards, create or join one!
+          </span>
+          <div className="flex justify-between mt-4 px-2 gap-x-4">
+            <button className="btn flex-grow basis-0.5" onClick={openCreateModal}>
+              Create
+            </button>
+            <button className="btn flex-grow basis-0.5" onClick={openJoinModal}>
+              Join
+            </button>
+          </div>
+        </div>
+      );
+    default:
+      return (
+        <div>
+          {data.leaderboards.map((lb, i) => (
+            <div key={`${lb.name}-${i}`}>{lb.name}</div>
+          ))}
+        </div>
+      );
+  }
 };
 
 type ModalState = {
@@ -79,7 +126,7 @@ type CreateInputs = {
 type CreateOrJoinModalProps = {
   open: boolean;
   closeModal: ModalProps["closeModal"];
-  onSubmit: () => void;
+  onSubmit: SubmitHandler<CreateInputs>;
 };
 
 const CreateModal: React.FC<CreateOrJoinModalProps> = (props) => {
@@ -88,13 +135,12 @@ const CreateModal: React.FC<CreateOrJoinModalProps> = (props) => {
     handleSubmit,
     formState: { errors },
   } = useForm<CreateInputs>();
-  const onSubmit: SubmitHandler<CreateInputs> = (data) => console.log(data);
 
   return (
     <Modal open={props.open} closeModal={props.closeModal} title={"Create a Leaderboard!"}>
       <form
         className="flex-grow h-full flex flex-col items-center gap-y-4"
-        onSubmit={handleSubmit(onSubmit)}>
+        onSubmit={handleSubmit(props.onSubmit)}>
         <div className="form-control w-full max-w-xs">
           <label className="label">
             <span className="label-text">What would you like to name this leaderboard?</span>
@@ -116,8 +162,8 @@ const CreateModal: React.FC<CreateOrJoinModalProps> = (props) => {
           <button className="flex-grow basis-0.5 btn" onClick={props.closeModal} type="button">
             cancel
           </button>
-          <input id="join-submit" className="basis-0 invisible" type="submit" title="join" />
-          <label htmlFor="join-submit" className="btn flex-grow basis-0.5">
+          <input id="create-submit" className="basis-0 invisible" type="submit" title="join" />
+          <label htmlFor="create-submit" className="btn flex-grow basis-0.5">
             Create
           </label>
         </div>

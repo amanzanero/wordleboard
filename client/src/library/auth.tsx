@@ -31,30 +31,54 @@ const auth = getAuth(app);
 
 type UserState = {
   user?: User;
+  loading: boolean;
   setUser: (u: User | undefined) => void;
+  fetchToken: () => Promise<string | undefined>;
 };
 
-const initUserState: UserState = { setUser: (_: User | undefined) => {} };
+const initUserState: UserState = {
+  loading: false,
+  setUser: (_: User | undefined) => {},
+  fetchToken: () => Promise.resolve(""),
+};
 
 const UserContext = createContext(initUserState);
 
 export const UserProvider: React.FC = ({ children }) => {
   const [user, setUser] = useState<User>();
-  return <UserContext.Provider value={{ user, setUser }}>{children}</UserContext.Provider>;
-};
-
-export const useFirebaseUser = () => {
-  const { user: authUser, setUser } = useContext(UserContext);
   const [loading, setLoading] = useState(true);
 
+  const fetchToken = useCallback(() => {
+    const p: Promise<string | undefined> = new Promise((resolve, _) => {
+      onAuthStateChanged(auth, (user) => {
+        if (!!user) {
+          user.getIdToken().then((value) => resolve(value));
+        } else {
+          resolve(undefined);
+        }
+      });
+    });
+    return p;
+  }, []);
+
   useEffect(() => {
-    return onAuthStateChanged(auth, (user) => {
+    const stopListening = onAuthStateChanged(auth, (user) => {
       setUser(user ? user : undefined);
       setLoading(false);
     });
+    return stopListening;
   });
 
-  return { user: authUser, loading };
+  return (
+    <UserContext.Provider value={{ user, setUser, loading, fetchToken }}>
+      {children}
+    </UserContext.Provider>
+  );
+};
+
+export const useFirebaseUser = () => {
+  const { user, loading, fetchToken } = useContext(UserContext);
+  return { user, loading, fetchToken };
 };
 
 export const useFirebaseAuth = () => {

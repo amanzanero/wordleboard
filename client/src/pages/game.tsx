@@ -43,7 +43,7 @@ const Game: NextPage = () => {
 
   const { mutate } = useGuessMutation({
     onSuccess: (result) => {
-      if ((result as InvalidGuess).error === undefined) {
+      if (result.__typename === "GameBoard") {
         const serverGuesses = [...(result as GameBoardType).guesses];
         const lastGuess = serverGuesses.pop();
         if (lastGuess === undefined) {
@@ -59,9 +59,8 @@ const Game: NextPage = () => {
           queryClient.setQueryData(["todayBoard", `user-${user?.uid}`], result);
           dispatch({ type: "guess_success" });
         });
-      } else {
-        const err = result as InvalidGuess;
-        switch (err.error) {
+      } else if (result.__typename === "InvalidGuess") {
+        switch (result.error) {
           case GuessError.NotAWord:
             dispatch({ type: "guess_error", message: "Invalid guess" });
             break;
