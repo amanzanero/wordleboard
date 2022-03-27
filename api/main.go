@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/amanzanero/wordleboard/api/leaderboards"
 	"github.com/amanzanero/wordleboard/api/mongo"
 	"github.com/amanzanero/wordleboard/api/secrets"
 	"github.com/amanzanero/wordleboard/api/users"
@@ -71,13 +72,19 @@ func main() {
 		logger.Fatalf("failed to initialize auth.Client: %v", authClientErr)
 	}
 	userService := users.Service{Client: authClient, Repo: mongoService, Logger: logger}
+	leaderboardService := leaderboards.Service{
+		Logger: logger,
+		Repo:   mongoService,
+	}
 	resolver := &graph.Resolver{
 		WordleService: wordle.NewService(
 			mongoService,
 			logger,
 		),
-		UsersService: userService,
-		Logger:       logger,
+		UsersService:       userService,
+		LeaderboardService: leaderboardService,
+		Logger:             logger,
+		Timeout:            15 * time.Second,
 	}
 	gqlServer := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: resolver}))
 

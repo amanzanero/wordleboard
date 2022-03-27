@@ -6,15 +6,12 @@ import (
 )
 
 var (
-	gameboardIndex = mongo.IndexModel{
-		Keys: bson.D{
-			{Key: "day", Value: -1},
-			{Key: "userId", Value: 1},
-		},
+	leaderboardIndex = mongo.IndexModel{
+		Keys:    bson.M{"join_id": 1},
 		Options: nil,
 	}
 	userIndex = mongo.IndexModel{
-		Keys:    bson.M{"oauth_id": 1},
+		Keys:    bson.M{"oauth_uuid": 1},
 		Options: nil,
 	}
 )

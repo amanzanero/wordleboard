@@ -16,16 +16,14 @@ var (
 
 type GameBoardRepo interface {
 	FindGameBoardByUserAndDay(ctx context.Context, userId string, day int) (*GameBoard, error)
-	InsertGameBoard(ctx context.Context, gameBoard GameBoard) error
-	UpdateGameBoardById(ctx context.Context, id string, gameBoard GameBoard) error
+	InsertGameBoard(ctx context.Context, userId string, gameBoard GameBoard) error
+	UpdateGameBoardByUserAndDay(ctx context.Context, day int, userId string, gameBoard GameBoard) error
 }
 
 type GameBoard struct {
-	ID      string
 	Day     int            `json:"day"`
 	Guesses [][]GuessState `json:"guesses"`
 	State   GameState      `json:"state"`
-	UserId  string
 }
 
 type GuessState struct {

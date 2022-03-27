@@ -50,9 +50,8 @@ func (s *Service) GetTodayGameOrCreateNewGame(ctx context.Context, userId string
 		Day:     day,
 		Guesses: make([][]models.GuessState, 0),
 		State:   models.GameStateInProgress,
-		UserId:  userId,
 	}
-	insertErr := s.repo.InsertGameBoard(ctx, gameBoard)
+	insertErr := s.repo.InsertGameBoard(ctx, userId, gameBoard)
 	if insertErr != nil {
 		return nil, errors.New("internal error")
 	}
@@ -89,7 +88,7 @@ func (s *Service) Guess(ctx context.Context, userId, guess string) (models.Guess
 	today := timeToWordleDay(time.Now())
 	gameBoard, lookupErr := s.repo.FindGameBoardByUserAndDay(ctx, userId, today)
 	if lookupErr != nil {
-		s.logger.Warn(lookupErr)
+		s.logger.Warnf("FindGameBoardByUserAndDay: %v", lookupErr)
 		return nil, lookupErr
 	}
 
@@ -133,7 +132,7 @@ func (s *Service) Guess(ctx context.Context, userId, guess string) (models.Guess
 		} else if len(gameBoard.Guesses) == 6 {
 			gameBoard.State = models.GameStateLost
 		}
-		updateErr := s.repo.UpdateGameBoardById(ctx, gameBoard.ID, *gameBoard)
+		updateErr := s.repo.UpdateGameBoardByUserAndDay(ctx, today, userId, *gameBoard)
 		if updateErr != nil {
 			return nil, updateErr
 		}
