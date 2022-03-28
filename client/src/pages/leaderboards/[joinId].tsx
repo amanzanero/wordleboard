@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
 import DrawerLayout from "components/DrawerLayout";
@@ -6,9 +6,10 @@ import { useLeaderboard } from "query/leaderboards";
 import { useTodayGameBoard } from "query/guess";
 import { useFirebaseUser } from "library/auth";
 import LoadingSpinner from "components/LoadingSpinner";
-import { GameState, LeaderboardStat, User, UserStat } from "../../codegen";
-import GameBoard from "../../components/GameBoard";
-import { guessesToBoardState } from "../../components/GameBoard/gameBoardState";
+import { GameState, LeaderboardStat, User, UserStat } from "codegen";
+import GameBoard from "components/GameBoard";
+import { guessesToBoardState } from "components/GameBoard/gameBoardState";
+import toast, { Toaster } from "react-hot-toast";
 
 const LeaderboardPage: NextPage = () => {
   const router = useRouter();
@@ -28,6 +29,7 @@ const LeaderboardPage: NextPage = () => {
 
   return (
     <DrawerLayout>
+      <Toaster />
       {!(joinId && typeof joinId === "string") || todayIsLoading || userIsLoading || !today ? (
         <LoadingSpinner />
       ) : (
@@ -44,6 +46,8 @@ const MainContent: React.FC<{
   const router = useRouter();
   const { data: leaderboard, isLoading: leaderboardIsLoading } = useLeaderboard(joinId);
   const [daySelected, setDaySelected] = useState(today);
+  const notify = useCallback((text: string) => toast(text), []);
+
   const options = useMemo(() => {
     return Array.from(Array(today - 1).keys())
       .reverse()
@@ -82,12 +86,6 @@ const MainContent: React.FC<{
   }, [daySelected, leaderboard, serverLeaderboardStat?.stats]);
   const showCannotSee = daySelected === today && serverLeaderboardStat?.visible === false;
 
-  useEffect(() => {
-    if (showCannotSee) {
-      window.alert("You won't be able to see today's guesses until you finish today's game");
-    }
-  }, [showCannotSee]);
-
   switch (leaderboard?.__typename) {
     case undefined:
     default:
@@ -108,7 +106,21 @@ const MainContent: React.FC<{
                 Leaderboard: <span className="font-bold">{leaderboard.name}</span>
               </h1>
             </div>
-            <div className="w-full flex justify-center mt-2">
+            <div className="mt-4 w-full text-center flex justify-between items-center">
+              <p>
+                Share ID: <span className="font-bold">{leaderboard.id}</span>
+              </p>
+              <button
+                onClick={() => {
+                  navigator.clipboard
+                    .writeText(leaderboard.id)
+                    .then(() => notify("Copied to clipboard"));
+                }}
+                className="btn btn-sm btn-primary">
+                COPY
+              </button>
+            </div>
+            <div className="w-full flex justify-center mt-4">
               <select
                 onChange={(event) => setDaySelected(parseInt(event.target.value))}
                 defaultValue={daySelected}
@@ -122,6 +134,12 @@ const MainContent: React.FC<{
               </select>
             </div>
             <div className="mt-4 w-full flex flex-col">
+              {showCannotSee && (
+                <p className="italic mb-4">
+                  You won&apos;t be able to see today&apos;s guesses until you finish today&apos;s
+                  game
+                </p>
+              )}
               {leaderboardStats.map((stats, i) => {
                 if (
                   stats.guesses.length === 0 ||

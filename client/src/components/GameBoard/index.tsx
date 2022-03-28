@@ -82,7 +82,7 @@ const LetterBox: React.FC<{ cell: BoardCell }> = ({ cell }) => {
       case LetterGuess.InWord:
         return "bg-yellow-500";
       default:
-        return "bg-white dark:bg-darkmode";
+        return "";
     }
   };
 
@@ -105,7 +105,7 @@ const LetterBox: React.FC<{ cell: BoardCell }> = ({ cell }) => {
       </div>
       <div
         className={classnames(
-          "h-full w-full absolute flex justify-center items-center bg-white dark:bg-darkmode text-black dark:text-white border-2",
+          "h-full w-full absolute flex justify-center items-center text-black dark:text-white border-2",
           cell.letter === ""
             ? "border-gray-400 dark:border-gray-600"
             : "border-gray-500 dark:border-gray-700",

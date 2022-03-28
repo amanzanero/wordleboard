@@ -1,16 +1,18 @@
-import React, { Reducer, useReducer } from "react";
+import React, { Reducer, useCallback, useReducer } from "react";
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
 import { useForm, SubmitHandler } from "react-hook-form";
 import DrawerLayout from "components/DrawerLayout";
 import MetaTags from "components/MetaTags";
 import Modal, { type ModalProps } from "components/Modal";
-import { useCreateNewLeaderboard, useMyLeaderboards } from "query/leaderboards";
+import { useCreateNewLeaderboard, useJoinLeaderboard, useMyLeaderboards } from "query/leaderboards";
 import LoadingSpinner from "components/LoadingSpinner";
-import { MyLeaderboardsQuery } from "codegen";
+import { LeaderboardError, MyLeaderboardsQuery } from "codegen";
+import toast, { Toaster } from "react-hot-toast";
 
 const Game: NextPage = () => {
   const router = useRouter();
+  const notify = useCallback((text: string) => toast(text), []);
 
   const [modalState, dispatch] = useReducer(modalReducer, {
     joinModalOpen: false,
@@ -32,9 +34,31 @@ const Game: NextPage = () => {
     },
   });
 
+  const { mutate: joinLeaderboardMutation } = useJoinLeaderboard({
+    onSuccess: (data) => {
+      switch (data.__typename) {
+        case "Leaderboard":
+          router.push(`/leaderboards/${data.id}`);
+          break;
+        case "LeaderboardResultError":
+          switch (data.error) {
+            case LeaderboardError.DoesNotExist:
+              notify("leaderboard does not exist");
+              break;
+            case LeaderboardError.CouldNotCreate:
+            default:
+              notify("internal error");
+              break;
+          }
+          break;
+      }
+    },
+  });
+
   return (
     <>
       <MetaTags />
+      <Toaster />
       <DrawerLayout>
         <h1 className=" mt-4 text-xl font-bold">Leaderboards</h1>
         <div className="h-full w-full flex justify-center mt-4">
@@ -54,7 +78,10 @@ const Game: NextPage = () => {
       <JoinModal
         open={modalState.joinModalOpen}
         closeModal={() => dispatch({ type: "close" })}
-        onSubmit={() => console.log("submit")}
+        onSubmit={(values) => {
+          console.log(values);
+          joinLeaderboardMutation(values);
+        }}
       />
       <CreateModal
         open={modalState.createModalOpen}
@@ -152,13 +179,13 @@ type CreateInputs = {
   name: string;
 };
 
-type CreateOrJoinModalProps = {
+type CreateOrJoinModalProps<T> = {
   open: boolean;
   closeModal: ModalProps["closeModal"];
-  onSubmit: SubmitHandler<CreateInputs>;
+  onSubmit: SubmitHandler<T>;
 };
 
-const CreateModal: React.FC<CreateOrJoinModalProps> = (props) => {
+const CreateModal: React.FC<CreateOrJoinModalProps<CreateInputs>> = (props) => {
   const {
     register,
     handleSubmit,
@@ -205,19 +232,18 @@ type JoinInputs = {
   id: string;
 };
 
-const JoinModal: React.FC<CreateOrJoinModalProps> = (props) => {
+const JoinModal: React.FC<CreateOrJoinModalProps<JoinInputs>> = (props) => {
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<JoinInputs>();
-  const onSubmit: SubmitHandler<JoinInputs> = (data) => console.log(data);
 
   return (
     <Modal open={props.open} closeModal={props.closeModal} title={"Join a leaderboard!"}>
       <form
         className="flex-grow h-full flex flex-col items-center gap-y-4"
-        onSubmit={handleSubmit(onSubmit)}>
+        onSubmit={handleSubmit(props.onSubmit)}>
         <div className="form-control w-full max-w-xs">
           <label className="label">
             <span className="label-text">Enter the ID that was shared with you:</span>

@@ -6,6 +6,9 @@ import {
   NewLeaderboardDocument,
   MyLeaderboardsQuery,
   MyLeaderboardsDocument,
+  JoinLeaderboardMutation,
+  JoinLeaderboardMutationVariables,
+  JoinLeaderboardDocument,
 } from "codegen";
 import { useQuery, useMutation, UseQueryOptions, UseMutationOptions } from "react-query";
 import type { ClientError } from "graphql-request";
@@ -47,6 +50,25 @@ export function useMyLeaderboards(options?: UseQueryOptions<MyLeaderboardsQuery[
   return useQuery<MyLeaderboardsQuery["me"]>(
     ["leaderboards"],
     () => request(MyLeaderboardsDocument).then((data) => data.me),
+    options,
+  );
+}
+
+export function useJoinLeaderboard(
+  options?: UseMutationOptions<
+    JoinLeaderboardMutation["joinLeaderboard"],
+    ClientError,
+    JoinLeaderboardMutationVariables
+  >,
+) {
+  const request = useGraphqlRequest();
+  return useMutation<
+    JoinLeaderboardMutation["joinLeaderboard"],
+    ClientError,
+    JoinLeaderboardMutationVariables
+  >(
+    [],
+    (args) => request(JoinLeaderboardDocument, args).then((data) => data.joinLeaderboard),
     options,
   );
 }

@@ -31,6 +31,7 @@ query LeaderboardByJoinId($joinId: ID!)  {
     __typename
     ... on Leaderboard {
       name
+      id
       members {
         displayName
         id
@@ -64,6 +65,21 @@ mutation NewLeaderboard($name: String!) {
     ... on Leaderboard {
       name
       id
+    }
+    ... on LeaderboardResultError {
+      error
+    }
+  }
+}
+
+mutation JoinLeaderboard($id: String!) {
+  joinLeaderboard(id: $id) {
+    __typename
+    ... on Leaderboard {
+      id
+      members {
+        displayName
+      }
     }
     ... on LeaderboardResultError {
       error
