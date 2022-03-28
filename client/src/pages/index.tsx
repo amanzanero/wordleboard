@@ -36,11 +36,18 @@ const Home: NextPage = () => {
               <FacebookLoginButton onClick={facebookAuth} />
               <GoogleLoginButton onClick={googleAuth} />
               {IS_DEV && (
-                <button
-                  onClick={devLogin}
-                  className="bg-white dark:bg-blue-600 text-gray-600 dark:text-white p-2 text-lg rounded hover:ring-2 border border-gray-200 dark:border-0">
-                  Login with dev user
-                </button>
+                <>
+                  <button
+                    onClick={() => devLogin("uuid")}
+                    className="bg-white dark:bg-blue-600 text-gray-600 dark:text-white p-2 text-lg rounded hover:ring-2 border border-gray-200 dark:border-0">
+                    Login with dev user
+                  </button>
+                  <button
+                    onClick={() => devLogin("uuid2")}
+                    className="bg-white dark:bg-blue-600 text-gray-600 dark:text-white p-2 text-lg rounded hover:ring-2 border border-gray-200 dark:border-0">
+                    Login with dev user 2
+                  </button>
+                </>
               )}
             </>
           )}

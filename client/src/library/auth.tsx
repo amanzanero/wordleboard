@@ -111,12 +111,15 @@ export const useFirebaseAuth = () => {
     getResult();
   }, [setUser]);
 
-  const devLogin = useCallback(async () => {
-    const response = await axios.get("/api/customToken/uuid");
-    const { token } = response.data;
-    const user = await signInWithCustomToken(auth, token);
-    setUser(user.user);
-  }, [setUser]);
+  const devLogin = useCallback(
+    async (id: "uuid" | "uuid2") => {
+      const response = await axios.get(`/api/customToken/${id}`);
+      const { token } = response.data;
+      const user = await signInWithCustomToken(auth, token);
+      setUser(user.user);
+    },
+    [setUser],
+  );
 
   return {
     googleAuth,

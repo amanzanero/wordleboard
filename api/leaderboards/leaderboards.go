@@ -122,7 +122,7 @@ func (s *Service) GetStatsForLeaderboard(ctx context.Context, lb models.Leaderbo
 	}
 
 	sort.Slice(returnStats, func(i, j int) bool {
-		return returnStats[i].Day < returnStats[j].Day
+		return returnStats[i].Day > returnStats[j].Day
 	})
 
 	return returnStats, err

@@ -32,19 +32,23 @@ query LeaderboardByJoinId($joinId: ID!)  {
     ... on Leaderboard {
       name
       members {
-        displayName,
+        displayName
+        id
       }
       stats {
+        visible
         day
         stats {
           user {
             displayName
+            id
           }
           day
           guesses {
             letter
             guess
           }
+          state
         }
       }
     }

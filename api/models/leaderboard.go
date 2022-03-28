@@ -26,8 +26,9 @@ type Leaderboard struct {
 }
 
 type LeaderboardStat struct {
-	Day   int        `json:"day"`
-	Stats []UserStat `json:"stats"`
+	Day     int        `json:"day"`
+	Stats   []UserStat `json:"stats"`
+	Visible bool       `json:"visible"`
 }
 
 type UserStat struct {

@@ -66,7 +66,7 @@ type ComplexityRoot struct {
 		Members func(childComplexity int) int
 		Name    func(childComplexity int) int
 		Owner   func(childComplexity int) int
-		Stats   func(childComplexity int) int
+		Stats   func(childComplexity int, first *int, after *int) int
 	}
 
 	LeaderboardResultError struct {
@@ -74,8 +74,9 @@ type ComplexityRoot struct {
 	}
 
 	LeaderboardStat struct {
-		Day   func(childComplexity int) int
-		Stats func(childComplexity int) int
+		Day     func(childComplexity int) int
+		Stats   func(childComplexity int) int
+		Visible func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -94,7 +95,7 @@ type ComplexityRoot struct {
 	User struct {
 		DisplayName     func(childComplexity int) int
 		ID              func(childComplexity int) int
-		IndividualStats func(childComplexity int) int
+		IndividualStats func(childComplexity int, first *int, after *int) int
 		Leaderboards    func(childComplexity int) int
 	}
 
@@ -108,7 +109,7 @@ type ComplexityRoot struct {
 
 type LeaderboardResolver interface {
 	Members(ctx context.Context, obj *models.Leaderboard) ([]*models.User, error)
-	Stats(ctx context.Context, obj *models.Leaderboard) ([]*models.LeaderboardStat, error)
+	Stats(ctx context.Context, obj *models.Leaderboard, first *int, after *int) ([]*models.LeaderboardStat, error)
 }
 type MutationResolver interface {
 	Guess(ctx context.Context, input string) (models.GuessResult, error)
@@ -123,7 +124,7 @@ type QueryResolver interface {
 }
 type UserResolver interface {
 	Leaderboards(ctx context.Context, obj *models.User) ([]*models.Leaderboard, error)
-	IndividualStats(ctx context.Context, obj *models.User) ([]*models.UserStat, error)
+	IndividualStats(ctx context.Context, obj *models.User, first *int, after *int) ([]*models.UserStat, error)
 }
 
 type executableSchema struct {
@@ -216,7 +217,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Leaderboard.Stats(childComplexity), true
+		args, err := ec.field_Leaderboard_stats_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Leaderboard.Stats(childComplexity, args["first"].(*int), args["after"].(*int)), true
 
 	case "LeaderboardResultError.error":
 		if e.complexity.LeaderboardResultError.Error == nil {
@@ -238,6 +244,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.LeaderboardStat.Stats(childComplexity), true
+
+	case "LeaderboardStat.visible":
+		if e.complexity.LeaderboardStat.Visible == nil {
+			break
+		}
+
+		return e.complexity.LeaderboardStat.Visible(childComplexity), true
 
 	case "Mutation.createLeaderboard":
 		if e.complexity.Mutation.CreateLeaderboard == nil {
@@ -332,7 +345,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.User.IndividualStats(childComplexity), true
+		args, err := ec.field_User_individualStats_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.User.IndividualStats(childComplexity, args["first"].(*int), args["after"].(*int)), true
 
 	case "User.leaderboards":
 		if e.complexity.User.Leaderboards == nil {
@@ -473,7 +491,7 @@ type User {
   id: ID!
   displayName: String!
   leaderboards: [Leaderboard!]!
-  individualStats: [UserStat!]!
+  individualStats(first: Int = 20, after: Int): [UserStat!]!
 }
 
 input NewUser {
@@ -491,13 +509,14 @@ type UserStat {
 type LeaderboardStat {
   day: Int!
   stats: [UserStat!]!
+  visible: Boolean!
 }
 
 type Leaderboard {
   id: ID!
   name: String!
   members: [User!]!
-  stats: [LeaderboardStat!]!
+  stats(first: Int = 20, after: Int): [LeaderboardStat!]!
   owner: ID!
 }
 
@@ -533,6 +552,30 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Leaderboard_stats_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg1
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_createLeaderboard_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -621,6 +664,30 @@ func (ec *executionContext) field_Query_leaderboard_args(ctx context.Context, ra
 		}
 	}
 	args["joinId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_User_individualStats_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg1
 	return args, nil
 }
 
@@ -993,9 +1060,16 @@ func (ec *executionContext) _Leaderboard_stats(ctx context.Context, field graphq
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Leaderboard_stats_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Leaderboard().Stats(rctx, obj)
+		return ec.resolvers.Leaderboard().Stats(rctx, obj, args["first"].(*int), args["after"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1150,6 +1224,41 @@ func (ec *executionContext) _LeaderboardStat_stats(ctx context.Context, field gr
 	res := resTmp.([]models.UserStat)
 	fc.Result = res
 	return ec.marshalNUserStat2ᚕgithubᚗcomᚋamanzaneroᚋwordleboardᚋapiᚋmodelsᚐUserStatᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _LeaderboardStat_visible(ctx context.Context, field graphql.CollectedField, obj *models.LeaderboardStat) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "LeaderboardStat",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Visible, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_guess(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1621,9 +1730,16 @@ func (ec *executionContext) _User_individualStats(ctx context.Context, field gra
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_User_individualStats_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.User().IndividualStats(rctx, obj)
+		return ec.resolvers.User().IndividualStats(rctx, obj, args["first"].(*int), args["after"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3262,6 +3378,16 @@ func (ec *executionContext) _LeaderboardStat(ctx context.Context, sel ast.Select
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "visible":
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._LeaderboardStat_visible(ctx, field, obj)
+			}
+
+			out.Values[i] = innerFunc(ctx)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4795,6 +4921,22 @@ func (ec *executionContext) marshalOGameBoard2ᚖgithubᚗcomᚋamanzaneroᚋwor
 		return graphql.Null
 	}
 	return ec._GameBoard(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalInt(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	res := graphql.MarshalInt(*v)
+	return res
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {

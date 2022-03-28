@@ -38,7 +38,7 @@ type User {
   id: ID!
   displayName: String!
   leaderboards: [Leaderboard!]!
-  individualStats: [UserStat!]!
+  individualStats(first: Int = 20, after: Int): [UserStat!]!
 }
 
 input NewUser {
@@ -56,13 +56,14 @@ type UserStat {
 type LeaderboardStat {
   day: Int!
   stats: [UserStat!]!
+  visible: Boolean!
 }
 
 type Leaderboard {
   id: ID!
   name: String!
   members: [User!]!
-  stats: [LeaderboardStat!]!
+  stats(first: Int = 20, after: Int): [LeaderboardStat!]!
   owner: ID!
 }
 

@@ -36,15 +36,18 @@ const Game: NextPage = () => {
     <>
       <MetaTags />
       <DrawerLayout>
-        <div className="h-full">
+        <h1 className=" mt-4 text-xl font-bold">Leaderboards</h1>
+        <div className="h-full w-full flex justify-center mt-4">
           {isLoading ? (
             <LoadingSpinner />
           ) : (
-            <Content
-              data={data}
-              openCreateModal={() => dispatch({ type: "open_create" })}
-              openJoinModal={() => dispatch({ type: "open_join" })}
-            />
+            <div className="max-w-screen-lg w-full">
+              <Content
+                data={data}
+                openCreateModal={() => dispatch({ type: "open_create" })}
+                openJoinModal={() => dispatch({ type: "open_join" })}
+              />
+            </div>
           )}
         </div>
       </DrawerLayout>
@@ -70,6 +73,8 @@ const Content: React.FC<{
   openCreateModal: () => void;
   openJoinModal: () => void;
 }> = ({ data, openCreateModal, openJoinModal }) => {
+  const router = useRouter();
+
   if (!data) {
     return <div>error</div>;
   }
@@ -92,10 +97,34 @@ const Content: React.FC<{
       );
     default:
       return (
-        <div>
+        <div className="flex flex-col w-full px-2 pt-2 h-full">
           {data.leaderboards.map((lb, i) => (
-            <div key={`${lb.name}-${i}`}>{lb.name}</div>
+            <div key={`${lb.name}-${i}`}>
+              <div
+                className="border rounded-lg border-gray-300 p-2 flex"
+                key={`${lb.name}-${i}`}
+                onClick={() => router.push(`/leaderboards/${lb.id}`)}>
+                <div className="flex flex-col">
+                  <h2 className="text-lg font-bold">{lb.name}</h2>
+                  <p className="text-sm">
+                    Members: <span className="font-bold">{lb.members.length}</span>
+                  </p>
+                </div>
+              </div>
+              {i < data.leaderboards.length - 1 && (
+                <div className="divider w-full" key={`divider-${i}`} />
+              )}
+            </div>
           ))}
+          <div className="flex-grow" />
+          <div className="flex justify-between mt-4 px-2 gap-x-4 mb-4">
+            <button className="btn flex-grow basis-0.5" onClick={openCreateModal}>
+              Create
+            </button>
+            <button className="btn flex-grow basis-0.5" onClick={openJoinModal}>
+              Join
+            </button>
+          </div>
         </div>
       );
   }

@@ -116,33 +116,7 @@ const gameReducer: Reducer<GameBoardState, GameBoardAction> = (
     case "close_modal":
       return { ...previousState, modalState: { ...previousState.modalState, open: false } };
     case "recompute_game_board":
-      const boardRows: BoardRow[] =
-        action.guesses.map((row) => {
-          return {
-            letters: row.map((guess) => ({
-              letter: guess.letter.toUpperCase(),
-              guess: guess.guess,
-              animate: false,
-            })),
-            type: BoardRowType.GUESSED,
-          };
-        }) || [];
-      if (boardRows.length < 6) {
-        boardRows.push({
-          letters: Array(5).fill({ letter: "", animate: false }),
-          type: BoardRowType.GUESSING,
-        });
-      }
-
-      if (boardRows.length < 6) {
-        boardRows.push(
-          ...Array(6 - boardRows.length).fill({
-            type: BoardRowType.REMAINING,
-            letters: Array(5).fill({ letter: "", animate: false }),
-          }),
-        );
-      }
-
+      const boardRows: BoardRow[] = guessesToBoardState(action.guesses);
       const correctLetters: KeyboardState = {};
       const incorrectLetters: KeyboardState = {};
       const inWordLetters: KeyboardState = {};
@@ -222,4 +196,35 @@ export function useGameBoardState(): [GameBoardState, (a: GameBoardAction) => vo
   });
 
   return [localState, dispatch];
+}
+
+export function guessesToBoardState(guesses: GuessState[][]): BoardRow[] {
+  const boardRows =
+    guesses.map((row) => {
+      return {
+        letters: row.map((guess) => ({
+          letter: guess.letter.toUpperCase(),
+          guess: guess.guess,
+          animate: false,
+        })),
+        type: BoardRowType.GUESSED,
+      };
+    }) || [];
+
+  if (boardRows.length < 6) {
+    boardRows.push({
+      letters: Array(5).fill({ letter: "", animate: false }),
+      type: BoardRowType.GUESSING,
+    });
+  }
+
+  if (boardRows.length < 6) {
+    boardRows.push(
+      ...Array(6 - boardRows.length).fill({
+        type: BoardRowType.REMAINING,
+        letters: Array(5).fill({ letter: "", animate: false }),
+      }),
+    );
+  }
+  return boardRows;
 }

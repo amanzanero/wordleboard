@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/amanzanero/wordleboard/api/graph/generated"
@@ -19,8 +20,41 @@ func (r *leaderboardResolver) Members(ctx context.Context, obj *models.Leaderboa
 	return r.LeaderboardService.Repo.FindLeaderBoardMembers(cancelCtx, obj.MemberIds)
 }
 
-func (r *leaderboardResolver) Stats(ctx context.Context, obj *models.Leaderboard) ([]*models.LeaderboardStat, error) {
-	return r.LeaderboardService.GetStatsForLeaderboard(ctx, *obj)
+func (r *leaderboardResolver) Stats(ctx context.Context, obj *models.Leaderboard, first *int, after *int) ([]*models.LeaderboardStat, error) {
+	user := users.ForContext(ctx)
+
+	var wg sync.WaitGroup
+	var stats []*models.LeaderboardStat
+	var statsErr error
+	var todayBoard *models.GameBoard
+	var todayBoardErr error
+
+	wg.Add(2)
+	go func() {
+		stats, statsErr = r.LeaderboardService.GetStatsForLeaderboard(ctx, *obj)
+		wg.Done()
+	}()
+	go func() {
+		todayBoard, todayBoardErr = r.WordleService.GetTodayGameOrCreateNewGame(ctx, user.ID, time.Now())
+		wg.Done()
+	}()
+	wg.Wait()
+
+	if statsErr != nil {
+		return nil, statsErr
+	}
+	if todayBoardErr != nil {
+		return nil, todayBoardErr
+	}
+
+	for _, stat := range stats {
+		if stat.Day == todayBoard.Day && todayBoard.State == models.GameStateInProgress {
+			stat.Visible = false
+		} else {
+			stat.Visible = true
+		}
+	}
+	return stats, nil
 }
 
 func (r *mutationResolver) Guess(ctx context.Context, input string) (models.GuessResult, error) {
@@ -84,7 +118,7 @@ func (r *userResolver) Leaderboards(ctx context.Context, obj *models.User) ([]*m
 	return r.LeaderboardService.GetLeaderboardsForUser(cancelCtx, *obj)
 }
 
-func (r *userResolver) IndividualStats(ctx context.Context, obj *models.User) ([]*models.UserStat, error) {
+func (r *userResolver) IndividualStats(ctx context.Context, obj *models.User, first *int, after *int) ([]*models.UserStat, error) {
 	cancelCtx, cancel := context.WithTimeout(ctx, r.Timeout)
 	defer cancel()
 	return r.LeaderboardService.GetStatsForUser(cancelCtx, *obj)

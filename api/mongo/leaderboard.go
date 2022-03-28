@@ -139,7 +139,7 @@ func (s *Service) FindLeaderBoardMembers(ctx context.Context, members []string) 
 			return nil, models.ErrRepoFailed
 		}
 		model := &models.User{
-			ID:          member.ID.String(),
+			ID:          member.ID.Hex(),
 			DisplayName: member.DisplayName,
 			OauthId:     member.OauthUuid,
 		}
