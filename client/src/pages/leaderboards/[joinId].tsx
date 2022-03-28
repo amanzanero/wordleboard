@@ -49,9 +49,9 @@ const MainContent: React.FC<{
   const notify = useCallback((text: string) => toast(text), []);
 
   const options = useMemo(() => {
-    return Array.from(Array(today - 1).keys())
-      .reverse()
-      .filter((i) => i != 0);
+    const opts = Array.from(Array(today).keys()).reverse();
+    opts.pop();
+    return opts;
   }, [today]);
 
   // @ts-ignore
