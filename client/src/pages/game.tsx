@@ -1,4 +1,5 @@
 import type { NextPage } from "next";
+import Link from "next/link";
 import React, { useCallback, useEffect } from "react";
 import GameBoard, { useGameBoardState } from "components/GameBoard";
 import { useGuessMutation, useTodayGameBoard } from "query/guess";
@@ -12,8 +13,8 @@ import toast, { Toaster } from "react-hot-toast";
 import DrawerLayout from "components/DrawerLayout";
 import { doEvery } from "utils/time";
 import Head from "next/head";
-import MetaTags from "../components/MetaTags";
-import Modal from "../components/Modal";
+import MetaTags from "components/MetaTags";
+import Modal from "components/Modal";
 
 const Game: NextPage = () => {
   const { user, loading: userLoading } = useFirebaseUser();
@@ -127,7 +128,15 @@ const Game: NextPage = () => {
         open={state.modalState.open}
         closeModal={() => dispatch({ type: "close_modal" })}
         title={state.modalState.title}>
-        {state.modalState.text}
+        <span>
+          Go see or join a{" "}
+          <Link href="/leaderboards">
+            <a className="underline text-blue-600 hover:text-blue-800 visited:text-purple-600">
+              leaderboard
+            </a>
+          </Link>
+          !
+        </span>
       </Modal>
     </>
   );
