@@ -97,13 +97,13 @@ const LetterButton: React.FC<{
 }> = ({ letter, last, onPress, correct, inWord, incorrect }) => {
   const color = () => {
     if (correct) {
-      return "bg-green-600 text-white";
+      return "bg-green-600 active:bg-green-700 text-white";
     } else if (inWord) {
-      return "bg-yellow-500 text-white";
+      return "bg-yellow-500 active:bg-yellow-600 text-white";
     } else if (incorrect) {
-      return "bg-gray-500 dark:bg-gray-700 text-white";
+      return "bg-gray-500 active:bg-gray-600 dark:bg-gray-700 dark:active:bg-gray-800 text-white";
     } else {
-      return "bg-gray-200 text-black dark:bg-gray-500 text-black dark:text-white";
+      return "bg-gray-200 active:bg-gray-300 text-black dark:bg-gray-500 dark:active:bg-gray-600 text-black dark:text-white";
     }
   };
   return (

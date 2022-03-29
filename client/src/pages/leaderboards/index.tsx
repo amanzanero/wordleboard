@@ -128,7 +128,7 @@ const Content: React.FC<{
           {data.leaderboards.map((lb, i) => (
             <div key={`${lb.name}-${i}`}>
               <div
-                className="border rounded-lg border-gray-300 p-2 flex"
+                className="border rounded-lg border-base-300 bg-base-100 p-2 flex"
                 key={`${lb.name}-${i}`}
                 onClick={() => router.push(`/leaderboards/${lb.id}`)}>
                 <div className="flex flex-col">
