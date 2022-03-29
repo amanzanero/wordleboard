@@ -106,7 +106,8 @@ func (s *Service) Guess(ctx context.Context, userId, guess string) (models.Guess
 	if _, ok := guesses[guess]; ok {
 		solution := solutions[today]
 		newGuess := make([]models.GuessState, 5)
-		flattenedGuesses := flattenGuesses(gameBoard.Guesses, solution)
+		solutionGuessState := createGuessState(solution)
+
 		won := true
 		for i, l := range guess {
 			letter := string(l)
@@ -115,8 +116,8 @@ func (s *Service) Guess(ctx context.Context, userId, guess string) (models.Guess
 
 			if letter == string(solution[i]) {
 				newGuess[i].Guess = models.LetterGuessInLocation
-				flattenedGuesses[i].correct = true
-			} else if inWord && hasRemainingLetter(flattenedGuesses, letter) {
+				solutionGuessState[i].correct = true
+			} else if inWord && hasRemainingLetter(solutionGuessState, letter) {
 				won = false
 				newGuess[i].Guess = models.LetterGuessInWord
 			} else {
@@ -147,19 +148,11 @@ type guessAtLocation struct {
 	correct bool
 }
 
-// flattenGuesses creates a list showing which letters have been guessed correctly so far
-func flattenGuesses(guesses [][]models.GuessState, solution string) []guessAtLocation {
+// createGuessState creates a list of the solution
+func createGuessState(solution string) []guessAtLocation {
 	flattened := make([]guessAtLocation, 5)
 	for i, letter := range strings.Split(solution, "") {
 		flattened[i].letter = letter
-	}
-
-	for _, row := range guesses {
-		for i, guess := range row {
-			if guess.Guess == models.LetterGuessInLocation {
-				flattened[i].correct = true
-			}
-		}
 	}
 	return flattened
 }
