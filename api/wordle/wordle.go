@@ -108,7 +108,7 @@ func (s *Service) Guess(ctx context.Context, userId, guess string) (models.Guess
 		newGuess := make([]models.GuessState, 5)
 		solutionGuessState := createGuessState(solution)
 
-		won := true
+		guessWasSolution := true
 		for i, l := range guess {
 			letter := string(l)
 			newGuess[i].Letter = string(l)
@@ -116,19 +116,19 @@ func (s *Service) Guess(ctx context.Context, userId, guess string) (models.Guess
 
 			if letter == string(solution[i]) {
 				newGuess[i].Guess = models.LetterGuessInLocation
-				solutionGuessState[i].correct = true
-			} else if inWord && hasRemainingLetter(solutionGuessState, letter) {
-				won = false
+				solutionGuessState[i].correctOrInWord = true
+			} else if inWord && hasRemainingLetterAndMarkUsed(solutionGuessState, letter) {
+				guessWasSolution = false
 				newGuess[i].Guess = models.LetterGuessInWord
 			} else {
-				won = false
+				guessWasSolution = false
 				newGuess[i].Guess = models.LetterGuessIncorrect
 			}
 		}
 		gameBoard.Guesses = append(gameBoard.Guesses, newGuess)
 
 		// evaluate winning state
-		if won {
+		if guessWasSolution {
 			gameBoard.State = models.GameStateWon
 		} else if len(gameBoard.Guesses) == 6 {
 			gameBoard.State = models.GameStateLost
@@ -144,22 +144,26 @@ func (s *Service) Guess(ctx context.Context, userId, guess string) (models.Guess
 }
 
 type guessAtLocation struct {
-	letter  string
-	correct bool
+	letter          string
+	correctOrInWord bool
 }
 
 // createGuessState creates a list of the solution
-func createGuessState(solution string) []guessAtLocation {
-	flattened := make([]guessAtLocation, 5)
+func createGuessState(solution string) []*guessAtLocation {
+	flattened := make([]*guessAtLocation, 5)
 	for i, letter := range strings.Split(solution, "") {
-		flattened[i].letter = letter
+		flattened[i] = &guessAtLocation{
+			letter:          letter,
+			correctOrInWord: false,
+		}
 	}
 	return flattened
 }
 
-func hasRemainingLetter(guesses []guessAtLocation, letter string) bool {
+func hasRemainingLetterAndMarkUsed(guesses []*guessAtLocation, letter string) bool {
 	for _, guess := range guesses {
-		if letter == guess.letter && !guess.correct {
+		if letter == guess.letter && !guess.correctOrInWord {
+			guess.correctOrInWord = true
 			return true
 		}
 	}
