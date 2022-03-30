@@ -113,7 +113,7 @@ const Game: NextPage = () => {
         num = data?.state === GameState.Lost ? "X" : "6";
         break;
       default:
-        num = state.gameBoardState.length;
+        num = state.gameBoardState.length.toString();
     }
     navigator.share({
       title: `WordleBoard ${num}/6`,
