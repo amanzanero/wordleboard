@@ -2,7 +2,7 @@ import React from "react";
 import { useFirebaseAuth, useFirebaseUser } from "../library/auth";
 import { useRouter } from "next/router";
 
-const DrawerLayout: React.FC = ({ children }) => {
+const DrawerLayout: React.FC<{ customHeader?: React.ReactNode }> = ({ children, customHeader }) => {
   const { logOut } = useFirebaseAuth();
   const { user } = useFirebaseUser();
   const router = useRouter();
@@ -11,29 +11,41 @@ const DrawerLayout: React.FC = ({ children }) => {
     logOut().finally(() => router.push("/"));
   };
 
+  const isOnGame = router.pathname === "/game";
+
   return (
     <div className="flex flex-col items-center h-full">
       <div className="drawer h-screen w-full rounded dark:bg-darkmode">
         <input id="my-drawer" type="checkbox" className="drawer-toggle" />
         <div className="drawer-content">
           <div className="flex flex-col items-center h-full">
-            <div className={"flex p-2 w-full max-w-screen-lg items-center justify-between"}>
-              <label
-                htmlFor="my-drawer"
-                className="drawer-button p-3 border border-gray-300 dark:border-0 dark:bg-gray-600 rounded">
-                <svg
-                  className="fill-black dark:fill-white"
-                  viewBox="0 0 100 80"
-                  width="20"
-                  height="20">
-                  <rect width="100" height="20" />
-                  <rect y="30" width="100" height="20" />
-                  <rect y="60" width="100" height="20" />
-                </svg>
-              </label>
-              <h1 className="text-3xl font-bold text-black dark:text-white">WordleBoard</h1>
-              <div className="p-4">{"  "}</div>
-            </div>
+            {customHeader ? (
+              customHeader
+            ) : (
+              <div className={"flex p-2 w-full max-w-screen-lg items-center justify-between"}>
+                <label
+                  htmlFor="my-drawer"
+                  className="drawer-button p-3 border border-gray-300 dark:border-0 dark:bg-gray-600 rounded">
+                  <svg
+                    className="fill-black dark:fill-white"
+                    viewBox="0 0 100 80"
+                    width="20"
+                    height="20">
+                    <rect width="100" height="20" />
+                    <rect y="30" width="100" height="20" />
+                    <rect y="60" width="100" height="20" />
+                  </svg>
+                </label>
+                <h1 className="text-3xl font-bold text-black dark:text-white">WordleBoard</h1>
+                {isOnGame ? (
+                  <button className="btn">
+                    <ShareIcon />
+                  </button>
+                ) : (
+                  <div className="p-4">{"  "}</div>
+                )}
+              </div>
+            )}
             <hr className="w-full dark:border-gray-600" />
             {children}
           </div>
@@ -59,6 +71,19 @@ const DrawerLayout: React.FC = ({ children }) => {
         </div>
       </div>
     </div>
+  );
+};
+
+const ShareIcon: React.FC = () => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      height="24"
+      viewBox="0 0 24 24"
+      width="24"
+      className="fill-black dark:fill-white">
+      <path d="M16,11V3H8v6H2v12h20V11H16z M10,5h4v14h-4V5z M4,11h4v8H4V11z M20,19h-4v-6h4V19z" />
+    </svg>
   );
 };
 

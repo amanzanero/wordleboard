@@ -228,3 +228,20 @@ export function guessesToBoardState(guesses: GuessState[][]): BoardRow[] {
   }
   return boardRows;
 }
+
+export function gameToEmoji(guesses: GuessState[][]): string {
+  return guesses
+    .map((row) =>
+      row.map((guess) => {
+        switch (guess.guess) {
+          case LetterGuess.InLocation:
+            return "🟩";
+          case LetterGuess.InWord:
+            return "🟨";
+          case LetterGuess.Incorrect:
+            return "⬛️";
+        }
+      }),
+    )
+    .join("\n");
+}

@@ -114,7 +114,6 @@ const MainContent: React.FC<{
               <span className="text-lg">Copy and share this link with others!</span>
               <button
                 onClick={() => {
-                  window.alert(navigator.clipboard);
                   navigator.clipboard
                     .writeText(urlToShare)
                     .then(() => notify("Link copied to clipboard"));
