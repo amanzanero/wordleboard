@@ -229,11 +229,11 @@ export function guessesToBoardState(guesses: GuessState[][]): BoardRow[] {
   return boardRows;
 }
 
-export function gameToEmoji(guesses: GuessState[][]): string {
+export function gameToEmoji(guesses: BoardRow[]): string {
   return guesses
     .map((row) =>
-      row.map((guess) => {
-        switch (guess.guess) {
+      row.letters.map((cell) => {
+        switch (cell.guess) {
           case LetterGuess.InLocation:
             return "🟩";
           case LetterGuess.InWord:

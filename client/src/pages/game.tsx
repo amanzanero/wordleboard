@@ -1,6 +1,6 @@
 import type { NextPage } from "next";
 import Link from "next/link";
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import GameBoard, { useGameBoardState } from "components/GameBoard";
 import { useGuessMutation, useTodayGameBoard } from "query/guess";
 import { GameBoard as GameBoardType, GameState, GuessError, InvalidGuess } from "codegen";
@@ -15,11 +15,13 @@ import { doEvery } from "utils/time";
 import Head from "next/head";
 import MetaTags from "components/MetaTags";
 import Modal from "components/Modal";
+import { gameToEmoji } from "../components/GameBoard/gameBoardState";
 
 const Game: NextPage = () => {
   const { user, loading: userLoading } = useFirebaseUser();
   const { data, refetch } = useTodayGameBoard({ enabled: false, user: user?.uid || "" });
   const [state, dispatch] = useGameBoardState();
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -94,13 +96,38 @@ const Game: NextPage = () => {
     }
   }, [dispatch, notify, state.wrongGuess]);
 
+  const [nativeShare, setNativeShare] = useState(true);
+  useEffect(() => {
+    setNativeShare(!!navigator.share);
+  }, []);
+
+  const onClickShare = useCallback(() => {
+    dispatch({ type: "close_modal" });
+    setShareModalOpen(true);
+  }, [dispatch]);
+
+  const onShareScore = useCallback(() => {
+    let num: string;
+    switch (state.gameBoardState.length) {
+      case 6:
+        num = data?.state === GameState.Lost ? "X" : "6";
+        break;
+      default:
+        num = state.gameBoardState.length;
+    }
+    navigator.share({
+      title: `WordleBoard ${num}/6`,
+      text: gameToEmoji(state.gameBoardState),
+    });
+  }, [data?.state, state.gameBoardState]);
+
   return (
     <>
       <Head>
         <title>WordleBoard - Play</title>
         <MetaTags />
       </Head>
-      <DrawerLayout>
+      <DrawerLayout customHeader={<CustomHeader onClick={onClickShare} />}>
         <div className="max-w-lg w-full flex flex-col flex-grow pb-2 px-1">
           <Toaster />
           {!!data ? (
@@ -137,8 +164,68 @@ const Game: NextPage = () => {
           </Link>
           !
         </span>
+        {nativeShare && (
+          <span className="mt-4 w-full flex justify-between items-center">
+            Or share your score! <button className="btn btn-primary">Share</button>
+          </span>
+        )}
+      </Modal>
+      <Modal
+        open={shareModalOpen}
+        closeModal={() => setShareModalOpen(false)}
+        title={"Share your score!"}>
+        {[GameState.Won, GameState.Lost].includes(data?.state as any) ? (
+          <div className="w-full flex justify-between items-center">
+            <span>Share today&apos;s score with others</span>
+            <button className="btn btn-primary" onClick={onShareScore}>
+              share
+            </button>
+          </div>
+        ) : (
+          <div>Share this with others as soon as you finish</div>
+        )}
       </Modal>
     </>
+  );
+};
+
+const CustomHeader: React.FC<{ onClick: () => void }> = ({ onClick }) => {
+  const [nativeShare, setNativeShare] = useState(true);
+  useEffect(() => {
+    setNativeShare(!!navigator.share);
+  }, []);
+
+  return (
+    <div className={"flex p-2 w-full max-w-screen-lg items-center justify-between"}>
+      <label htmlFor="my-drawer" className="drawer-button btn">
+        <svg className="fill-black dark:fill-white" viewBox="0 0 100 80" width="20" height="20">
+          <rect width="100" height="20" />
+          <rect y="30" width="100" height="20" />
+          <rect y="60" width="100" height="20" />
+        </svg>
+      </label>
+      <h1 className="text-3xl font-bold text-black dark:text-white">WordleBoard</h1>
+      {nativeShare ? (
+        <button className="btn" onClick={onClick}>
+          <ShareIcon />
+        </button>
+      ) : (
+        <div className="p-4">{"  "}</div>
+      )}
+    </div>
+  );
+};
+
+const ShareIcon: React.FC = () => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      height="24"
+      viewBox="0 0 24 24"
+      width="24"
+      className="fill-black dark:fill-white">
+      <path d="M16,11V3H8v6H2v12h20V11H16z M10,5h4v14h-4V5z M4,11h4v8H4V11z M20,19h-4v-6h4V19z" />
+    </svg>
   );
 };
 

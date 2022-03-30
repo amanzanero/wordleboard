@@ -11,8 +11,6 @@ const DrawerLayout: React.FC<{ customHeader?: React.ReactNode }> = ({ children, 
     logOut().finally(() => router.push("/"));
   };
 
-  const isOnGame = router.pathname === "/game";
-
   return (
     <div className="flex flex-col items-center h-full">
       <div className="drawer h-screen w-full rounded dark:bg-darkmode">
@@ -23,9 +21,7 @@ const DrawerLayout: React.FC<{ customHeader?: React.ReactNode }> = ({ children, 
               customHeader
             ) : (
               <div className={"flex p-2 w-full max-w-screen-lg items-center justify-between"}>
-                <label
-                  htmlFor="my-drawer"
-                  className="drawer-button p-3 border border-gray-300 dark:border-0 dark:bg-gray-600 rounded">
+                <label htmlFor="my-drawer" className="drawer-button btn">
                   <svg
                     className="fill-black dark:fill-white"
                     viewBox="0 0 100 80"
@@ -37,13 +33,7 @@ const DrawerLayout: React.FC<{ customHeader?: React.ReactNode }> = ({ children, 
                   </svg>
                 </label>
                 <h1 className="text-3xl font-bold text-black dark:text-white">WordleBoard</h1>
-                {isOnGame ? (
-                  <button className="btn">
-                    <ShareIcon />
-                  </button>
-                ) : (
-                  <div className="p-4">{"  "}</div>
-                )}
+                <div className="p-4">{"  "}</div>
               </div>
             )}
             <hr className="w-full dark:border-gray-600" />
@@ -71,19 +61,6 @@ const DrawerLayout: React.FC<{ customHeader?: React.ReactNode }> = ({ children, 
         </div>
       </div>
     </div>
-  );
-};
-
-const ShareIcon: React.FC = () => {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      height="24"
-      viewBox="0 0 24 24"
-      width="24"
-      className="fill-black dark:fill-white">
-      <path d="M16,11V3H8v6H2v12h20V11H16z M10,5h4v14h-4V5z M4,11h4v8H4V11z M20,19h-4v-6h4V19z" />
-    </svg>
   );
 };
 
