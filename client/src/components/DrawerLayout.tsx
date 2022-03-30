@@ -21,7 +21,7 @@ const DrawerLayout: React.FC<{ customHeader?: React.ReactNode }> = ({ children, 
               customHeader
             ) : (
               <div className={"flex p-2 w-full max-w-screen-lg items-center justify-between"}>
-                <label htmlFor="my-drawer" className="drawer-button btn">
+                <label htmlFor="my-drawer" className="drawer-button border border-gray-300 dark:border-0 dark:bg-gray-600 rounded">
                   <svg
                     className="fill-black dark:fill-white"
                     viewBox="0 0 100 80"

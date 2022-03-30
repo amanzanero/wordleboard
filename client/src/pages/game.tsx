@@ -203,7 +203,9 @@ const CustomHeader: React.FC<{ onClick: () => void }> = ({ onClick }) => {
 
   return (
     <div className={"flex p-2 w-full max-w-screen-lg items-center justify-between"}>
-      <label htmlFor="my-drawer" className="drawer-button btn">
+      <label
+        htmlFor="my-drawer"
+        className="drawer-button p-3 border border-gray-300 dark:border-0 dark:bg-gray-600 rounded">
         <svg className="fill-black dark:fill-white" viewBox="0 0 100 80" width="20" height="20">
           <rect width="100" height="20" />
           <rect y="30" width="100" height="20" />
@@ -211,8 +213,10 @@ const CustomHeader: React.FC<{ onClick: () => void }> = ({ onClick }) => {
         </svg>
       </label>
       <h1 className="text-3xl font-bold text-black dark:text-white">WordleBoard</h1>
-      {nativeShare ? (
-        <button className="btn" onClick={onClick}>
+      {!nativeShare ? (
+        <button
+          className="p-3 border border-gray-300 dark:border-0 dark:bg-gray-600 rounded"
+          onClick={onClick}>
           <ShareIcon />
         </button>
       ) : (
