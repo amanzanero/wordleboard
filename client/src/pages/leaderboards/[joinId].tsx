@@ -10,6 +10,7 @@ import { GameState, LeaderboardStat, User, UserStat } from "codegen";
 import GameBoard from "components/GameBoard";
 import { guessesToBoardState } from "components/GameBoard/gameBoardState";
 import toast, { Toaster } from "react-hot-toast";
+import { IS_DEV } from "../../constants";
 
 const LeaderboardPage: NextPage = () => {
   const router = useRouter();
@@ -91,6 +92,9 @@ const MainContent: React.FC<{
     default:
       return leaderboardIsLoading ? <LoadingSpinner /> : <div>unavailable</div>;
     case "Leaderboard":
+      const urlToShare = `${IS_DEV ? "http://" : "https://"}${
+        window.location.host
+      }/leaderboards/join/${leaderboard.id}`;
       return (
         <div className="w-full h-full flex justify-center">
           <div className="flex flex-col max-w-screen-lg w-full px-2 pt-2">
@@ -102,29 +106,44 @@ const MainContent: React.FC<{
               </button>
             </div>
             <div className="mt-4 w-full text-center">
-              <h1 className="text-lg">
-                Leaderboard: <span className="font-bold">{leaderboard.name}</span>
+              <h1 className="text-xl">
+                Leaderboard: <span className="font-bold text-2xl">{leaderboard.name}</span>
               </h1>
             </div>
-            <div className="mt-4 w-full text-center flex justify-between items-center">
-              <p>
-                Share ID: <span className="font-bold">{leaderboard.id}</span>
-              </p>
+            <div className="mt-4 w-full text-center flex justify-end space-x-3 items-center">
+              <span className="text-lg">Copy and share this link with others!</span>
               <button
                 onClick={() => {
+                  window.alert(navigator.clipboard);
                   navigator.clipboard
-                    .writeText(leaderboard.id)
-                    .then(() => notify("Copied to clipboard"));
+                    .writeText(urlToShare)
+                    .then(() => notify("Link copied to clipboard"));
                 }}
-                className="btn btn-sm btn-primary">
+                className="btn btn-primary">
                 COPY
               </button>
+              {navigator.share && (
+                <button
+                  onClick={() => {
+                    navigator
+                      .share({
+                        title: "WordleBoard",
+                        text: `Join this leaderboard (${leaderboard.name})!`,
+                        url: urlToShare,
+                      })
+                      .then(() => console.log("Successful share"))
+                      .catch((error) => console.log("Error sharing", error));
+                  }}
+                  className="btn btn-primary">
+                  Share
+                </button>
+              )}
             </div>
             <div className="w-full flex justify-center mt-4">
               <select
                 onChange={(event) => setDaySelected(parseInt(event.target.value))}
                 defaultValue={daySelected}
-                className="select select-bordered w-full max-w-xs">
+                className="select select-bordered w-full">
                 <option value={today}> {`Day ${today} (Today)`}</option>
                 {options.map((i) => (
                   <option key={`option-${i}`} value={i}>
