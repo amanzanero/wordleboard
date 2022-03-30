@@ -117,11 +117,10 @@ const Game: NextPage = () => {
     }
     navigator
       .share({
-        title: `WordleBoard ${num}/6`,
-        text: gameToEmoji(state.gameBoardState),
+        text: `WordleBoard ${data?.day} ${num}/6\n\n${gameToEmoji(state.gameBoardState)}`,
       })
       .then(() => setShareModalOpen(false));
-  }, [data?.state, state.gameBoardState]);
+  }, [data, state.gameBoardState]);
 
   return (
     <>
