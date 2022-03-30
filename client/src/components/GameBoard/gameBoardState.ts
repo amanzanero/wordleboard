@@ -232,16 +232,18 @@ export function guessesToBoardState(guesses: GuessState[][]): BoardRow[] {
 export function gameToEmoji(guesses: BoardRow[]): string {
   return guesses
     .map((row) =>
-      row.letters.map((cell) => {
-        switch (cell.guess) {
-          case LetterGuess.InLocation:
-            return "🟩";
-          case LetterGuess.InWord:
-            return "🟨";
-          case LetterGuess.Incorrect:
-            return "⬛️";
-        }
-      }),
+      row.letters
+        .map((cell) => {
+          switch (cell.guess) {
+            case LetterGuess.InLocation:
+              return "🟩";
+            case LetterGuess.InWord:
+              return "🟨";
+            case LetterGuess.Incorrect:
+              return "⬛️";
+          }
+        })
+        .join(""),
     )
     .join("\n");
 }

@@ -115,10 +115,12 @@ const Game: NextPage = () => {
       default:
         num = state.gameBoardState.length.toString();
     }
-    navigator.share({
-      title: `WordleBoard ${num}/6`,
-      text: gameToEmoji(state.gameBoardState),
-    });
+    navigator
+      .share({
+        title: `WordleBoard ${num}/6`,
+        text: gameToEmoji(state.gameBoardState),
+      })
+      .then(() => setShareModalOpen(false));
   }, [data?.state, state.gameBoardState]);
 
   return (
@@ -166,7 +168,10 @@ const Game: NextPage = () => {
         </span>
         {nativeShare && (
           <span className="mt-4 w-full flex justify-between items-center">
-            Or share your score! <button className="btn btn-primary">Share</button>
+            Or share your score!{" "}
+            <button className="btn btn-primary" onClick={onShareScore}>
+              Share
+            </button>
           </span>
         )}
       </Modal>
