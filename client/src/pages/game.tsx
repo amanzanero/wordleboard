@@ -213,7 +213,7 @@ const CustomHeader: React.FC<{ onClick: () => void }> = ({ onClick }) => {
         </svg>
       </label>
       <h1 className="text-3xl font-bold text-black dark:text-white">WordleBoard</h1>
-      {!nativeShare ? (
+      {nativeShare ? (
         <button
           className="p-3 border border-gray-300 dark:border-0 dark:bg-gray-600 rounded"
           onClick={onClick}>
