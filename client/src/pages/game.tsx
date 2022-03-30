@@ -107,19 +107,21 @@ const Game: NextPage = () => {
   }, [dispatch]);
 
   const onShareScore = useCallback(() => {
-    let num: string;
-    switch (state.gameBoardState.length) {
-      case 6:
-        num = data?.state === GameState.Lost ? "X" : "6";
-        break;
-      default:
-        num = state.gameBoardState.length.toString();
+    if (!!data) {
+      let num: string;
+      switch (data.guesses.length) {
+        case 6:
+          num = data.state === GameState.Lost ? "X" : "6";
+          break;
+        default:
+          num = data.guesses.length.toString();
+      }
+      navigator
+        .share({
+          text: `WordleBoard ${data.day} ${num}/6\n\n${gameToEmoji(state.gameBoardState)}`,
+        })
+        .then(() => setShareModalOpen(false));
     }
-    navigator
-      .share({
-        text: `WordleBoard ${data?.day} ${num}/6\n\n${gameToEmoji(state.gameBoardState)}`,
-      })
-      .then(() => setShareModalOpen(false));
   }, [data, state.gameBoardState]);
 
   return (
