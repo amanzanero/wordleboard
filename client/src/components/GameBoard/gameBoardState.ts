@@ -231,6 +231,7 @@ export function guessesToBoardState(guesses: GuessState[][]): BoardRow[] {
 
 export function gameToEmoji(guesses: BoardRow[]): string {
   return guesses
+    .filter((row) => row.type != BoardRowType.REMAINING)
     .map((row) =>
       row.letters
         .map((cell) => {
