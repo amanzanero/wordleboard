@@ -2,7 +2,6 @@ package mongo
 
 import (
 	"context"
-	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
@@ -11,10 +10,9 @@ import (
 type Service struct {
 	database *mongo.Database
 	client   *mongo.Client
-	logger   *logrus.Logger
 }
 
-func NewMongoService(connection string, logger *logrus.Logger) (*Service, error) {
+func NewMongoService(connection string) (*Service, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connection))
@@ -41,7 +39,6 @@ func NewMongoService(connection string, logger *logrus.Logger) (*Service, error)
 	return &Service{
 			db,
 			client,
-			logger,
 		},
 		nil
 }

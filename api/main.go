@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/amanzanero/wordleboard/api/leaderboards"
+	"github.com/amanzanero/wordleboard/api/logging"
 	"github.com/amanzanero/wordleboard/api/mongo"
 	"github.com/amanzanero/wordleboard/api/secrets"
 	"github.com/amanzanero/wordleboard/api/users"
@@ -50,7 +51,7 @@ func main() {
 	secretManager.Initialize()
 
 	logger.Info("connecting to mongodb...")
-	mongoService, err := mongo.NewMongoService(secretManager.GetSecretString(secrets.MongoUri), logger)
+	mongoService, err := mongo.NewMongoService(secretManager.GetSecretString(secrets.MongoUri))
 	if err != nil {
 		logger.Fatalf("failed to create mongodb service: %v", err)
 	} else {
@@ -90,7 +91,7 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
-	r.Use(HttpLoggingMiddleware(logger, *isDev))
+	r.Use(logging.HttpLoggingMiddleware(logger, *isDev))
 	r.Handle("/graphql", userService.AuthMiddleware(gqlServer))
 	r.Post("/api/users", userService.CreateUserHandler())
 

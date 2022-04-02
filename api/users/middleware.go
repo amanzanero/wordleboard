@@ -2,6 +2,7 @@ package users
 
 import (
 	"context"
+	"github.com/amanzanero/wordleboard/api/logging"
 	"github.com/amanzanero/wordleboard/api/models"
 	"net/http"
 	"strings"
@@ -26,9 +27,24 @@ func (s *Service) AuthMiddleware(handler http.Handler) http.HandlerFunc {
 		}
 		user, lookupErr := s.Repo.FindUserByUuid(r.Context(), userUuid)
 		if lookupErr != nil {
-			s.Logger.Warnf("could not find authenticated user with uuid: %s, error: %v", userUuid, lookupErr)
-			http.Error(w, "internal error", http.StatusInternalServerError)
-			return
+			logging.FromContext(r.Context()).Infof("could not find authenticated user with uuid: %s, creating a new user", userUuid)
+
+			// try and create user
+			firebaseUser, firebaseErr := s.Client.GetUser(r.Context(), userUuid)
+			if firebaseErr != nil {
+				http.Error(w, "service unavailable", http.StatusServiceUnavailable)
+				return
+			}
+
+			user, err = s.Repo.InsertUser(r.Context(), models.NewUser{
+				ID:          firebaseUser.UID,
+				DisplayName: firebaseUser.DisplayName,
+			})
+			if err != nil {
+				logging.FromContext(r.Context()).Errorf("could not create user: %v", err)
+				http.Error(w, "internal error", http.StatusInternalServerError)
+				return
+			}
 		}
 
 		ctx := context.WithValue(r.Context(), userCtxKey, user)

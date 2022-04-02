@@ -2,7 +2,6 @@ package leaderboards
 
 import (
 	"context"
-	"errors"
 	"github.com/amanzanero/wordleboard/api/models"
 	"github.com/lithammer/shortuuid/v4"
 	"github.com/sirupsen/logrus"
@@ -32,10 +31,10 @@ func (s *Service) CreateNewLeaderboard(ctx context.Context, owner, name string) 
 func (s *Service) JoinLeaderboard(ctx context.Context, userId, boardId string) (models.LeaderboardResult, error) {
 	board, findErr := s.Repo.FindLeaderboardByJoinId(ctx, boardId)
 	if findErr != nil {
-		if errors.Is(findErr, models.ErrNotFound) {
+		if _, isNotFound := findErr.(models.ErrNotFound); isNotFound {
 			return models.LeaderboardResultError{Error: models.LeaderboardErrorDoesNotExist}, nil
 		} else {
-			return nil, findErr
+			return nil, models.ErrRepoFailed{RepoMethod: "JoinLeaderboard", Message: findErr.Error()}
 		}
 	}
 
@@ -62,7 +61,7 @@ func (s *Service) JoinLeaderboard(ctx context.Context, userId, boardId string) (
 func (s *Service) GetLeaderboard(ctx context.Context, userId, boardId string) (models.LeaderboardResult, error) {
 	board, findErr := s.Repo.FindLeaderboardByJoinId(ctx, boardId)
 	if findErr != nil {
-		if errors.Is(findErr, models.ErrNotFound) {
+		if _, isNotFound := findErr.(models.ErrNotFound); isNotFound {
 			return models.LeaderboardResultError{Error: models.LeaderboardErrorDoesNotExist}, nil
 		} else {
 			return nil, findErr
@@ -88,7 +87,7 @@ func (s *Service) GetLeaderboard(ctx context.Context, userId, boardId string) (m
 func (s *Service) GetStatsForLeaderboard(ctx context.Context, lb models.Leaderboard) ([]*models.LeaderboardStat, error) {
 	userStats, err := s.Repo.FindLeaderboardStatsForMembers(ctx, lb.MemberIds)
 	if err != nil {
-		return nil, models.ErrRepoFailed
+		return nil, models.ErrRepoFailed{RepoMethod: "JoinLeaderboard", Message: err.Error()}
 	}
 
 	dayToStat := make(map[int]models.LeaderboardStat)

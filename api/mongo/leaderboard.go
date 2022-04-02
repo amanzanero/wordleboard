@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/amanzanero/wordleboard/api/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -55,19 +56,19 @@ func (s *Service) FindLeaderboardByJoinId(ctx context.Context, joinId string) (*
 	result := collection.FindOne(ctx, filter)
 	if result.Err() != nil {
 		if errors.Is(result.Err(), mongo.ErrNoDocuments) {
-			s.logger.Infof("FindLeaderboardByJoinId: no leadearboard with join_id %s", joinId)
-			return nil, models.ErrNotFound
+			return nil, models.ErrNotFound{Message: fmt.Sprintf("no leadearboard with join_id %s", joinId), RepoMethod: "FindLeaderboardByJoinId"}
 		} else {
-			s.logger.Errorf("FindLeaderboardByJoinId failed: %v", result.Err())
-			return nil, models.ErrRepoFailed
+			return nil, models.ErrRepoFailed{
+				Message:    result.Err().Error(),
+				RepoMethod: "FindLeaderboardByJoinId",
+			}
 		}
 	}
 
 	leaderboard := new(persistLeaderboard)
 	decodeErr := result.Decode(leaderboard)
 	if decodeErr != nil {
-		s.logger.Errorf("FindLeaderboardByJoinId failed: %v", decodeErr)
-		return nil, models.ErrRepoFailed
+		return nil, models.ErrRepoFailed{Message: decodeErr.Error(), RepoMethod: "FindLeaderboardByJoinId"}
 	}
 
 	model := persistedLeaderboardToModel(*leaderboard)
@@ -80,8 +81,7 @@ func (s *Service) InsertNewLeaderboard(ctx context.Context, leaderboard models.L
 
 	result, insertErr := collection.InsertOne(ctx, insert)
 	if insertErr != nil {
-		s.logger.Errorf("InsertNewLeaderboard failed: %v", insertErr)
-		return nil, models.ErrRepoFailed
+		return nil, models.ErrRepoFailed{Message: insertErr.Error(), RepoMethod: "InsertNewLeaderboard"}
 	}
 
 	id, _ := result.InsertedID.(primitive.ObjectID)
@@ -97,12 +97,10 @@ func (s *Service) UpdateLeaderboardById(ctx context.Context, id string, leaderbo
 
 	result, err := collection.UpdateOne(ctx, bson.M{"_id": oid}, bson.M{"$set": persist})
 	if err != nil {
-		s.logger.Errorf("UpdateLeaderboardById failed: %v", err)
-		return models.ErrRepoFailed
+		return models.ErrRepoFailed{Message: err.Error(), RepoMethod: "UpdateLeaderboardById"}
 	}
 	if result.MatchedCount == 0 {
-		s.logger.Warnf("UpdateLeaderboardById did not match any document with id %s", id)
-		return models.ErrNotFound
+		return models.ErrNotFound{Message: fmt.Sprintf("did not match any document with id %s", id), RepoMethod: "UpdateLeaderboardById"}
 	}
 
 	return nil
@@ -122,11 +120,9 @@ func (s *Service) FindLeaderBoardMembers(ctx context.Context, members []string) 
 	results, err := collection.Find(ctx, filter, opts)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			s.logger.Info("FindLeaderBoardMembers did not find any ids")
-			return nil, models.ErrNotFound
+			return nil, models.ErrNotFound{Message: "did not find any ids", RepoMethod: "FindLeaderBoardMembers"}
 		} else {
-			s.logger.Errorf("FindLeaderBoardMembers failed: %v", err)
-			return nil, models.ErrRepoFailed
+			return nil, models.ErrRepoFailed{Message: err.Error(), RepoMethod: "FindLeaderBoardMembers"}
 		}
 	}
 
@@ -135,8 +131,7 @@ func (s *Service) FindLeaderBoardMembers(ctx context.Context, members []string) 
 	for results.Next(ctx) {
 		member := new(persistedUser)
 		if err := results.Decode(member); err != nil {
-			s.logger.Errorf("FindLeaderBoardMembers failed to decode: %v", err)
-			return nil, models.ErrRepoFailed
+			return nil, models.ErrRepoFailed{Message: err.Error(), RepoMethod: "FindLeaderBoardMembers"}
 		}
 		model := &models.User{
 			ID:          member.ID.Hex(),
@@ -146,8 +141,7 @@ func (s *Service) FindLeaderBoardMembers(ctx context.Context, members []string) 
 		foundMembers = append(foundMembers, model)
 	}
 	if err := results.Err(); err != nil {
-		s.logger.Errorf("FindLeaderBoardMembers failed: %v", err)
-		return nil, models.ErrRepoFailed
+		return nil, models.ErrRepoFailed{Message: err.Error(), RepoMethod: "FindLeaderBoardMembers"}
 	}
 	return foundMembers, nil
 }
@@ -166,11 +160,9 @@ func (s *Service) FindLeaderboardStatsForMembers(ctx context.Context, members []
 	results, err := collection.Find(ctx, filter) //, opts)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			s.logger.Info("FindLeaderBoardMembers did not find any ids")
-			return nil, models.ErrNotFound
+			return nil, models.ErrNotFound{Message: "did not find any ids", RepoMethod: "FindLeaderboardStatsForMembers"}
 		} else {
-			s.logger.Errorf("FindLeaderBoardMembers failed: %v", err)
-			return nil, models.ErrRepoFailed
+			return nil, models.ErrNotFound{Message: err.Error(), RepoMethod: "FindLeaderboardStatsForMembers"}
 		}
 	}
 
@@ -179,14 +171,12 @@ func (s *Service) FindLeaderboardStatsForMembers(ctx context.Context, members []
 	for results.Next(ctx) {
 		member := new(persistedUser)
 		if err := results.Decode(member); err != nil {
-			s.logger.Errorf("FindLeaderBoardMembers failed to decode: %v", err)
-			return nil, models.ErrRepoFailed
+			return nil, models.ErrRepoFailed{Message: err.Error(), RepoMethod: "FindLeaderBoardMembers"}
 		}
 		foundMembers = append(foundMembers, member)
 	}
 	if err := results.Err(); err != nil {
-		s.logger.Errorf("FindLeaderBoardMembers failed: %v", err)
-		return nil, models.ErrRepoFailed
+		return nil, models.ErrRepoFailed{Message: err.Error(), RepoMethod: "FindLeaderBoardMembers"}
 	}
 
 	// now transform into stats
@@ -213,8 +203,7 @@ func (s *Service) FindLeaderboardsForUser(ctx context.Context, userId string) ([
 
 	leaderboards, lookupErr := collection.Find(ctx, filter)
 	if lookupErr != nil {
-		s.logger.Errorf("FindLeaderboardsForUser failed: %v", lookupErr)
-		return nil, models.ErrRepoFailed
+		return nil, models.ErrRepoFailed{Message: lookupErr.Error(), RepoMethod: "FindLeaderboardsForUser"}
 	}
 
 	lbs := make([]*models.Leaderboard, 0)
@@ -222,15 +211,13 @@ func (s *Service) FindLeaderboardsForUser(ctx context.Context, userId string) ([
 		persistedLb := new(persistLeaderboard)
 		decodeErr := leaderboards.Decode(persistedLb)
 		if decodeErr != nil {
-			s.logger.Errorf("FindLeaderboardsForUser failed: %v", decodeErr)
-			return nil, models.ErrRepoFailed
+			return nil, models.ErrRepoFailed{Message: decodeErr.Error(), RepoMethod: "FindLeaderboardsForUser"}
 		}
 		model := persistedLeaderboardToModel(*persistedLb)
 		lbs = append(lbs, &model)
 	}
 	if leaderboards.Err() != nil {
-		s.logger.Errorf("FindLeaderboardsForUser failed: %v", leaderboards.Err())
-		return nil, models.ErrRepoFailed
+		return nil, models.ErrRepoFailed{Message: leaderboards.Err().Error(), RepoMethod: "FindLeaderboardsForUser"}
 	}
 
 	return lbs, nil
@@ -243,15 +230,13 @@ func (s *Service) FindGameBoardsForUser(ctx context.Context, userId string) ([]*
 
 	documentResult := collection.FindOne(ctx, filter)
 	if documentResult.Err() != nil {
-		s.logger.Errorf("FindStatsForUser failed: %v", documentResult.Err())
-		return nil, models.ErrRepoFailed
+		return nil, models.ErrRepoFailed{Message: documentResult.Err().Error(), RepoMethod: "FindLeaderboardsForUser"}
 	}
 
 	pu := new(persistedUser)
 	decodeErr := documentResult.Decode(pu)
 	if decodeErr != nil {
-		s.logger.Errorf("FindStatsForUser failed: %v", decodeErr)
-		return nil, models.ErrRepoFailed
+		return nil, models.ErrRepoFailed{Message: decodeErr.Error(), RepoMethod: "FindLeaderboardsForUser"}
 	}
 
 	gameBoards := make([]*models.GameBoard, 0)

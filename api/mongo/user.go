@@ -30,18 +30,15 @@ func (s *Service) FindUserById(ctx context.Context, userId string) (*models.User
 	doc := col.FindOne(ctx, bson.M{"_id": userId})
 	if doc.Err() != nil {
 		if errors.Is(doc.Err(), mongo.ErrNoDocuments) {
-			s.logger.Warnf("FindUserById: %v", doc.Err())
-			return nil, models.ErrNotFound
+			return nil, models.ErrNotFound{Message: doc.Err().Error(), RepoMethod: "FindUserById"}
 		}
-		s.logger.Errorf("FindUserById mongodb err: %v", doc.Err())
-		return nil, models.ErrRepoFailed
+		return nil, models.ErrRepoFailed{Message: doc.Err().Error(), RepoMethod: "FindUserById"}
 	}
 
 	pUser := new(persistedUser)
 	err := doc.Decode(pUser)
 	if err != nil {
-		s.logger.Errorf("FindUserById decode err: %v", err)
-		return nil, models.ErrRepoFailed
+		return nil, models.ErrRepoFailed{Message: err.Error(), RepoMethod: "FindUserById"}
 	}
 
 	model := persistedUserToModel(*pUser)
@@ -54,34 +51,37 @@ func (s *Service) FindUserByUuid(ctx context.Context, oauthUuid string) (*models
 	doc := col.FindOne(ctx, bson.M{"oauth_uuid": oauthUuid}, opt)
 	if doc.Err() != nil {
 		if errors.Is(doc.Err(), mongo.ErrNoDocuments) {
-			s.logger.Warnf("FindUserByUuid: %v", doc.Err())
-			return nil, models.ErrNotFound
+			return nil, models.ErrNotFound{Message: doc.Err().Error(), RepoMethod: "FindUserByUuid"}
 		}
-		s.logger.Errorf("FindUserByUuid: %v", doc.Err())
-		return nil, models.ErrRepoFailed
+		return nil, models.ErrRepoFailed{Message: doc.Err().Error(), RepoMethod: "FindUserByUuid"}
 	}
 
 	pUser := new(persistedUser)
 	err := doc.Decode(pUser)
 	if err != nil {
-		s.logger.Errorf("FindUserByUuid: %v", err)
-		return nil, models.ErrRepoFailed
+		return nil, models.ErrRepoFailed{Message: err.Error(), RepoMethod: "FindUserByUuid"}
 	}
 	model := persistedUserToModel(*pUser)
 	return &model, nil
 }
 
-func (s *Service) InsertUser(ctx context.Context, user models.NewUser) error {
+func (s *Service) InsertUser(ctx context.Context, user models.NewUser) (*models.User, error) {
 	col := s.database.Collection("users")
 	persist := &persistedUser{
 		DisplayName: user.DisplayName,
 		OauthUuid:   user.ID,
 		GameBoards:  make([]persistedGameBoard, 0),
 	}
-	_, err := col.InsertOne(ctx, persist)
+	result, err := col.InsertOne(ctx, persist)
 	if err != nil {
-		s.logger.Warnf("InsertUser: %v", err)
-		return err
+		return nil, models.ErrRepoFailed{
+			Message:    err.Error(),
+			RepoMethod: "InsertUser",
+		}
 	}
-	return nil
+	return &models.User{
+		ID:          result.InsertedID.(primitive.ObjectID).Hex(),
+		DisplayName: user.DisplayName,
+		OauthId:     user.ID,
+	}, nil
 }

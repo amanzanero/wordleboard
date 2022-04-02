@@ -10,7 +10,7 @@ import (
 type UserRepo interface {
 	FindUserById(ctx context.Context, userId string) (*User, error)
 	FindUserByUuid(ctx context.Context, oauthUuid string) (*User, error)
-	InsertUser(ctx context.Context, user NewUser) error
+	InsertUser(ctx context.Context, user NewUser) (*User, error)
 }
 type User struct {
 	ID          string `json:"id"`

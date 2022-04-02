@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/amanzanero/wordleboard/api/logging"
 	"github.com/amanzanero/wordleboard/api/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -44,24 +45,30 @@ func (s *Service) FindGameBoardByUserAndDay(ctx context.Context, userId string, 
 
 	collection := s.database.Collection("users")
 	doc := collection.FindOne(ctx, bson.M{"_id": userOid}, opt)
-	if doc.Err() != nil {
-		if errors.Is(doc.Err(), mongo.ErrNoDocuments) {
-			s.logger.Error("FindGameBoardByUserAndDay invalid state: no user")
+	if documentErr := doc.Err(); documentErr != nil {
+		var errToReturn models.ErrRepoFailed
+		if errors.Is(documentErr, mongo.ErrNoDocuments) {
+			errToReturn = models.ErrRepoFailed{
+				Message:    "invalid state, no user",
+				RepoMethod: "FindGameBoardByUserAndDay",
+			}
 		} else {
-			s.logger.Errorf("error in FindGameBoardByUserAndDay: %v", doc.Err())
+			errToReturn = models.ErrRepoFailed{
+				Message:    documentErr.Error(),
+				RepoMethod: "FindGameBoardByUserAndDay",
+			}
 		}
-		return nil, models.ErrRepoFailed
+		return nil, errToReturn
 	}
 
 	user := new(persistedUser)
 	err := doc.Decode(user)
 	if err != nil {
-		s.logger.Errorf("error in FindGameBoardByUserAndDay: %v", doc.Err())
-		return nil, models.ErrRepoFailed
+		return nil, models.ErrRepoFailed{Message: err.Error(), RepoMethod: "FindGameBoardByUserAndDay"}
 	}
 
 	if len(user.GameBoards) == 0 {
-		return nil, models.ErrNotFound
+		return nil, models.ErrNotFound{RepoMethod: "FindGameBoardByUserAndDay", Message: "no gameboards found for user"}
 	}
 	board := user.GameBoards[0]
 
@@ -105,11 +112,11 @@ func (s *Service) InsertGameBoard(ctx context.Context, userId string, gameBoard 
 	}}
 	result, err := collection.UpdateOne(ctx, filter, update)
 	if err != nil {
-		s.logger.Errorf("error in InsertGameBoard: %v", err)
+		logging.FromContext(ctx).Errorf("error in InsertGameBoard: %v", err)
 		return err
 	}
 	if result.MatchedCount == 0 {
-		s.logger.Errorf("error in InsertGameBoard: %v", err)
+		logging.FromContext(ctx).Errorf("error in InsertGameBoard: %v", err)
 		return errors.New(fmt.Sprintf("error in InsertGameBoard: no user with id %s found", userId))
 	}
 	return nil
@@ -126,10 +133,12 @@ func (s *Service) UpdateGameBoardByUserAndDay(ctx context.Context, day int, user
 	}}
 	result, err := collection.UpdateOne(ctx, filter, update)
 	if err != nil {
-		s.logger.Errorf("error in UpdateGameBoardByUserAndDay: %v", err)
-		return err
+		return models.ErrRepoFailed{
+			Message:    err.Error(),
+			RepoMethod: "UpdateGameBoardByUserAndDay",
+		}
 	} else if result.MatchedCount == 0 {
-		return models.ErrNotFound
+		return models.ErrNotFound{RepoMethod: "UpdateGameBoardByUserAndDay", Message: "did not update any documents"}
 	}
 	return nil
 }

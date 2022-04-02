@@ -2,16 +2,9 @@ package models
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"strconv"
-)
-
-var (
-	ErrInvalidId  = errors.New("invalid id")
-	ErrRepoFailed = errors.New("internal err")
-	ErrNotFound   = errors.New("not found")
 )
 
 type GameBoardRepo interface {

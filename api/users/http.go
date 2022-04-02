@@ -2,7 +2,6 @@ package users
 
 import (
 	"encoding/json"
-	"errors"
 	"github.com/amanzanero/wordleboard/api/models"
 	"net/http"
 )
@@ -29,7 +28,7 @@ func (s *Service) CreateUserHandler() http.HandlerFunc {
 			s.Logger.Infof("user with id: %s already exists, exiting", params.OauthId)
 			RespondWithJSON(w, 201, map[string]string{"msg": "succeeded"})
 			return
-		} else if errors.Is(findErr, models.ErrRepoFailed) {
+		} else if _, isRepoFailure := findErr.(models.ErrRepoFailed); isRepoFailure {
 			s.Logger.Errorf("failed to fetch user from repo: %v", findErr)
 			respondWithError(w, 500, findErr.Error())
 			return
@@ -44,7 +43,7 @@ func (s *Service) CreateUserHandler() http.HandlerFunc {
 		}
 
 		// ok user doesn't exist so let's make it
-		createErr := s.Repo.InsertUser(r.Context(), models.NewUser{
+		_, createErr := s.Repo.InsertUser(r.Context(), models.NewUser{
 			ID:          params.OauthId,
 			DisplayName: params.DisplayName,
 		})

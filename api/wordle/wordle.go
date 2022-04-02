@@ -2,7 +2,6 @@ package wordle
 
 import (
 	"context"
-	"errors"
 	"github.com/amanzanero/wordleboard/api/models"
 	"github.com/sirupsen/logrus"
 	"strings"
@@ -40,8 +39,7 @@ func (s *Service) GetTodayGameOrCreateNewGame(ctx context.Context, userId string
 	board, lookupErr := s.repo.FindGameBoardByUserAndDay(ctx, userId, day)
 	if lookupErr == nil {
 		return board, nil
-	} else if !errors.Is(lookupErr, models.ErrNotFound) {
-		s.logger.Error(lookupErr)
+	} else if _, isNotFound := lookupErr.(models.ErrNotFound); !isNotFound {
 		return nil, lookupErr
 	}
 
@@ -53,7 +51,7 @@ func (s *Service) GetTodayGameOrCreateNewGame(ctx context.Context, userId string
 	}
 	insertErr := s.repo.InsertGameBoard(ctx, userId, gameBoard)
 	if insertErr != nil {
-		return nil, errors.New("internal error")
+		return nil, insertErr
 	}
 
 	return &gameBoard, nil
@@ -63,7 +61,6 @@ func (s *Service) GetGameByDay(ctx context.Context, userId string, day int) (*mo
 	// find today's if it already exists
 	board, lookupErr := s.repo.FindGameBoardByUserAndDay(ctx, userId, day)
 	if lookupErr != nil {
-		s.logger.Error(lookupErr)
 		return nil, lookupErr
 	}
 	return board, nil
@@ -88,7 +85,6 @@ func (s *Service) Guess(ctx context.Context, userId, guess string) (models.Guess
 	today := timeToWordleDay(time.Now())
 	gameBoard, lookupErr := s.repo.FindGameBoardByUserAndDay(ctx, userId, today)
 	if lookupErr != nil {
-		s.logger.Warnf("FindGameBoardByUserAndDay: %v", lookupErr)
 		return nil, lookupErr
 	}
 

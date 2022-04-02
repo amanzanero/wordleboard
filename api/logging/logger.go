@@ -1,6 +1,7 @@
-package main
+package logging
 
 import (
+	"context"
 	"fmt"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/sirupsen/logrus"
@@ -12,8 +13,10 @@ import (
 // HttpLoggingMiddleware returns a request logging middleware
 func HttpLoggingMiddleware(logger logrus.FieldLogger, isDev bool) func(h http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, r *http.Request) {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			reqID := middleware.GetReqID(r.Context())
+			logger.WithField("requestId", reqID).Infof("started processing request")
+
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 			t1 := time.Now()
 			defer func() {
@@ -54,9 +57,12 @@ func HttpLoggingMiddleware(logger logrus.FieldLogger, isDev bool) func(h http.Ha
 				entry.Infof("served %s", r.RequestURI)
 			}()
 
-			h.ServeHTTP(ww, r)
-		}
-
-		return http.HandlerFunc(fn)
+			loggerContext := context.WithValue(r.Context(), requestCtxKey, logger.WithField("requestId", reqID))
+			h.ServeHTTP(ww, r.WithContext(loggerContext))
+		})
 	}
+}
+
+func LogTimeElapsed(entry *logrus.Entry, executionContextName string, t time.Time) {
+	entry.Infof("%s took %dms to complete", executionContextName, time.Since(t).Milliseconds())
 }
