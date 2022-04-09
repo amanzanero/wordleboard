@@ -5,11 +5,11 @@ package graph
 
 import (
 	"context"
-	"github.com/amanzanero/wordleboard/api/logging"
 	"sync"
 	"time"
 
 	"github.com/amanzanero/wordleboard/api/graph/generated"
+	"github.com/amanzanero/wordleboard/api/logging"
 	"github.com/amanzanero/wordleboard/api/models"
 	"github.com/amanzanero/wordleboard/api/users"
 )
@@ -102,6 +102,19 @@ func (r *mutationResolver) JoinLeaderboard(ctx context.Context, id string) (mode
 		logging.FromContext(ctx).Errorf("error in JoinLeaderboard: %v", err)
 	}
 	return res, err
+}
+
+func (r *mutationResolver) LeaveLeaderboard(ctx context.Context, id string) (bool, error) {
+	defer logging.LogTimeElapsed(logging.FromContext(ctx), "LeaveLeaderboard", time.Now())
+	cancelCtx, cancel := context.WithTimeout(ctx, r.Timeout)
+	defer cancel()
+
+	user := users.ForContext(ctx)
+	err := r.LeaderboardService.RemoveUserFromLeaderboard(cancelCtx, user.ID, id)
+	if err != nil {
+		logging.FromContext(ctx).Errorf("error in LeaveLeaderboard: %v", err)
+	}
+	return err == nil, err
 }
 
 func (r *queryResolver) Day(ctx context.Context, input int) (*models.GameBoard, error) {

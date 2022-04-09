@@ -104,6 +104,14 @@ func (s *Service) Guess(ctx context.Context, userId, guess string) (models.Guess
 		newGuess := make([]models.GuessState, 5)
 		solutionGuessState := createGuessState(solution)
 
+		for i, l := range guess {
+			letter := string(l)
+			if letter == string(solution[i]) {
+				newGuess[i].Guess = models.LetterGuessInLocation
+				solutionGuessState[i].correctOrInWord = true
+			}
+		}
+
 		guessWasSolution := true
 		for i, l := range guess {
 			letter := string(l)
@@ -111,8 +119,7 @@ func (s *Service) Guess(ctx context.Context, userId, guess string) (models.Guess
 			inWord := strings.Contains(solution, letter)
 
 			if letter == string(solution[i]) {
-				newGuess[i].Guess = models.LetterGuessInLocation
-				solutionGuessState[i].correctOrInWord = true
+				// nothing
 			} else if inWord && hasRemainingLetterAndMarkUsed(solutionGuessState, letter) {
 				guessWasSolution = false
 				newGuess[i].Guess = models.LetterGuessInWord

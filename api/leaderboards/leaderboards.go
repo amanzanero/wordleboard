@@ -58,6 +58,33 @@ func (s *Service) JoinLeaderboard(ctx context.Context, userId, boardId string) (
 	return board, nil
 }
 
+func (s *Service) RemoveUserFromLeaderboard(ctx context.Context, userId, boardId string) error {
+	board, findErr := s.Repo.FindLeaderboardByJoinId(ctx, boardId)
+	if findErr != nil {
+		if _, isNotFound := findErr.(models.ErrNotFound); isNotFound {
+			return nil
+		} else {
+			return models.ErrRepoFailed{RepoMethod: "RemoveUserFromLeaderboard", Message: findErr.Error()}
+		}
+	}
+
+	newMembersArray := make([]string, 0)
+	for _, member := range board.MemberIds {
+		if member != userId {
+			newMembersArray = append(newMembersArray, member)
+		}
+	}
+	board.MemberIds = newMembersArray
+	err := s.Repo.UpdateLeaderboardById(ctx, board.StoredId, *board)
+	if err != nil {
+		return models.ErrRepoFailed{
+			Message:    err.Error(),
+			RepoMethod: "RemoveUserFromLeaderboard",
+		}
+	}
+	return nil
+}
+
 func (s *Service) GetLeaderboard(ctx context.Context, userId, boardId string) (models.LeaderboardResult, error) {
 	board, findErr := s.Repo.FindLeaderboardByJoinId(ctx, boardId)
 	if findErr != nil {

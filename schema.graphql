@@ -91,4 +91,5 @@ type Mutation {
   guess(input: String!): GuessResult! # guesses only apply to today's board
   createLeaderboard(name: String!): LeaderboardResult!
   joinLeaderboard(id: String!): LeaderboardResult!
+  leaveLeaderboard(id: String!): Boolean!
 }
